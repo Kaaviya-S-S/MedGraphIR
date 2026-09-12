@@ -14,10 +14,6 @@ not assumed.
 > **This is not a diagnosis tool.** It retrieves and summarizes existing,
 > sourced relationships. See [Medical Safety](#medical-safety) below.
 
-📖 **For the full technical write-up** — dataset dictionary, every design
-decision, bugs found and fixed with root causes, and complete evaluation
-results — see **[DOCUMENTATION.md](DOCUMENTATION.md)**.
-
 ## Architecture
 
 ```mermaid
@@ -70,9 +66,7 @@ python evaluation/evaluate.py
 
 ## Results
 
-Measured on the full dataset, 30 test queries (see
-[DOCUMENTATION.md](DOCUMENTATION.md#9-evaluation-methodology) for full
-methodology and per-query analysis):
+Measured on the full dataset, 30 test queries:
 
 | Method | Precision | Recall | F1 | Avg. time |
 |---|---|---|---|---|
@@ -87,8 +81,7 @@ away; see the documentation for why.
 ## Tech Stack
 
 Python, Pandas, NetworkX, scikit-learn, Streamlit, Pydantic, Ollama
-(optional), Pyvis. No Neo4j, vector databases, LangChain, or agent
-frameworks — kept intentionally lightweight.
+(optional).
 
 ## Project Structure
 
