@@ -289,8 +289,6 @@ def render_about_page():
         "Retrieved information should not be used as a substitute for professional medical advice.",
         icon="⚠️",
     )
-    st.caption("Full documentation, design decisions, and evaluation methodology: see DOCUMENTATION.md.")
-
 
 def main():
     with st.sidebar:
