@@ -1,0 +1,4 @@
+[theme]
+# Slightly larger than Streamlit's 16px default - scales all text
+# (captions, headings, body) proportionally, including in the sidebar.
+baseFontSize = 18

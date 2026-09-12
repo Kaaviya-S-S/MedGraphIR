@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Large raw/processed data and built graph are reproducible from scripts,
+# not checked into version control.
+data/raw/*.csv
+data/raw/*.tsv
+data/processed/*.csv
+data/graph/*.pkl
+
+.ipynb_checkpoints/
+.DS_Store

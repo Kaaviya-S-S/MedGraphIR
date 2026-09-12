@@ -1,0 +1,4 @@
+method,precision,recall,f1,precision_at_5,precision_at_10,retrieval_time_ms
+graph,1.0,0.6994,0.7165,1.0,1.0,2.13
+hybrid,0.6958,0.5976,0.4376,0.8133,0.7367,30.38
+keyword,0.5858,0.4653,0.3482,0.6467,0.6067,26.93

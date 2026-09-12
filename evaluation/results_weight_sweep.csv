@@ -1,0 +1,4 @@
+weights,precision,recall,f1,precision_at_5,precision_at_10,retrieval_time_ms
+"alpha=0.3,beta=0.7",0.7191,0.623,0.4619,0.8467,0.7733,30.32
+"alpha=0.5,beta=0.5",0.6958,0.5976,0.4376,0.8133,0.7367,30.47
+"alpha=0.7,beta=0.3",0.6691,0.5619,0.408,0.7133,0.6733,30.16
