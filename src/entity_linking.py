@@ -1,7 +1,5 @@
 """
 Normalizes raw entity mentions into canonical graph nodes.
-
-Normalization strategy (deliberately minimal - see README data dictionary):
   - lowercase
   - strip leading/trailing whitespace
   - collapse internal whitespace runs to a single space

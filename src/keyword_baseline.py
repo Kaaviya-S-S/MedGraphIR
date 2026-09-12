@@ -4,8 +4,8 @@ search over the same relation records the knowledge graph was built from.
 
 This exists specifically to give Milestone 7 something meaningful to
 compare graph retrieval against - the entire point of this being an IR
-project rather than just "a graph with a search box" (see README section
-6, Milestone 6). It deliberately ignores the graph structure entirely:
+project rather than just "a graph with a search box". 
+It deliberately ignores the graph structure entirely:
 each relation record (one drug-drug interaction or drug-disease indication
 row) is treated as an independent bag-of-words document. A query can only
 surface a record if that record's OWN text contains matching/related

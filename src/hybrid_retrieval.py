@@ -105,8 +105,7 @@ def retrieve_hybrid(
     `alpha=1, beta=0` exactly reproduces pure TF-IDF's result set and
     order; `alpha=0, beta=1` exactly reproduces pure graph retrieval's -
     verified directly against retrieve_relationships()/KeywordRetriever.
-    search() output for multiple real queries (see README for the
-    specific test methodology and results).
+    search() output for multiple real queries.
     """
     start = time.perf_counter()
 

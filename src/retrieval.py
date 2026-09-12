@@ -85,7 +85,7 @@ class RetrievalResult(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Entity index (built once at startup, reused across queries - see README
+# Entity index (built once at startup, reused across queries
 # "Performance": retrieval must not rebuild lookup structures per request)
 # ---------------------------------------------------------------------------
 
@@ -236,7 +236,7 @@ def search_entity(query: str, index: EntityIndex) -> list[EntityMatch]:
     # diabetes mellitus", three distinct real entities. Silently picking
     # one via a string-length heuristic would hide the other two instead
     # of surfacing the ambiguity, which the brief explicitly calls for
-    # handling (see README Milestone 10 - "multiple possible entity matches").
+    # handling (see DOCUMENTATION.md Milestone 10 - "multiple possible entity matches").
     for ngram in content_ngrams:
         pattern = re.compile(rf"\b{re.escape(ngram)}\b")
         containing = [alias for alias in index.alias_lookup if pattern.search(alias)]
@@ -419,7 +419,7 @@ def retrieve_relationships(
     """The full Milestone 5 pipeline for one query. Never raises on
     "no match" / "no results" - callers (evaluation, UI) check
     `matched_entity is None` / `facts == []` and handle it explicitly
-    (see README Milestone 10 - error handling).
+    (see DOCUMENTATION.md Milestone 10 - error handling).
 
     `adaptive_hops=True` ignores `max_hops` and instead picks the hop
     depth per query based on the matched entity's own 1-hop connection

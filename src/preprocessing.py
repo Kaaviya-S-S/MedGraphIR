@@ -7,7 +7,7 @@ duplicate rows, mapping raw fields onto the controlled relationship
 vocabulary). Canonical entity normalization (e.g. deciding that "Metformin"
 and " metformin " are the same node) happens later in entity_extraction.py.
 
-Design decisions (see README data dictionary for full detail):
+Design decisions:
   - DDInter rows are inherently symmetric drug-drug interactions with a
     severity label (Major/Moderate/Minor/Unknown). They map to a single
     controlled relationship: INTERACTS_WITH, with severity kept as an edge

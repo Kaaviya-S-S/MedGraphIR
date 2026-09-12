@@ -17,9 +17,8 @@ relationship over LLM inference"):
    Ollama model to classify the relationship between two given entities
    from the given text, constrained to the same controlled vocabulary.
    The current pipeline has no free-text field to run this on (DDInter's
-   bulk export has no mechanism/description column - see README
-   Limitations), so this path is not invoked by default. It exists so the
-   architecture matches the brief and can be exercised the moment a
+   bulk export has no mechanism/description column, so this path is not invoked by default. 
+   It exists so the architecture matches the brief and can be exercised the moment a
    free-text source is added.
 
 Every Relation is validated by Pydantic against config.VALID_RELATIONS

@@ -5,8 +5,7 @@ Streamlit UI for the Medical Knowledge Graph IR System.
 
 The graph is built once by build_graph.py and only ever LOADED here, via
 st.cache_resource so it loads once per server process rather than once per
-query (see README "Performance") - retrieval itself stays fast even though
-loading a 161k-edge graph from disk is not free.
+query - retrieval itself stays fast even though loading a 161k-edge graph from disk is not free.
 """
 
 import altair as alt
@@ -165,7 +164,7 @@ def render_evaluation_page():
     that script already saved, rather than re-running the ~30s evaluation
     (graph + TF-IDF + hybrid + weight sweep, over 30 queries) on every page
     view. Same "build once, load fast" pattern as the knowledge graph
-    itself (see README section 13, Performance).
+    itself (see DOCUMENTATION.md section 13, Performance).
     """
     st.title("Evaluation")
     st.markdown(
@@ -290,7 +289,7 @@ def render_about_page():
         "Retrieved information should not be used as a substitute for professional medical advice.",
         icon="⚠️",
     )
-    st.caption("Full documentation, design decisions, and evaluation methodology: see README.md.")
+    st.caption("Full documentation, design decisions, and evaluation methodology: see DOCUMENTATION.md.")
 
 
 def main():
