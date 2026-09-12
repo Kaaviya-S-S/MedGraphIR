@@ -1,9 +1,8 @@
 # 🧬 Medical Knowledge Graph-Based Information Retrieval System
 
-An academic **Information Retrieval** project that models drug-drug
-interactions and drug-disease relationships as a graph, then answers
-natural-language queries by matching an entity and retrieving its 1-2 hop
-neighborhood — not by asking a language model to recall facts from memory.
+MedGraphIR models drug-drug interactions and drug-disease relationships as a graph, then answers
+natural-language queries by matching an entity and retrieving its 1-2 hop neighborhood — not by 
+asking a language model to recall facts from memory.
 
 Retrieval happens over a real knowledge graph built from **DDInter 2.0**
 (~222k drug-drug interactions) and **PharmacotherapyDB** (physician-curated
