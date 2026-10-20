@@ -82,6 +82,7 @@ class RetrievalResult(BaseModel):
     retrieval_time_ms: float = 0.0
     hops_used: int = 0  # actual hop depth applied (manual value, or the auto-adaptive decision)
     hops_adaptive: bool = False  # True if hops_used was decided automatically, not passed by the caller
+    used_lexical_fallback: bool = False  # True if no entity matched and lexical search answered instead
 
 
 # ---------------------------------------------------------------------------

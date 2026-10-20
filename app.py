@@ -19,6 +19,7 @@ from pyvis.network import Network
 from src import config
 from src.answer_generator import generate_answer
 from src.bm25_baseline import lexical_result_to_fact, load_bm25_baseline
+from src.fallback_retrieval import retrieve_with_fallback
 from src.retrieval import RetrievalResult, RetrievedFact, load_retrieval_engine, retrieve_relationships
 
 st.set_page_config(page_title="MedGraphIR", page_icon="\U0001F9EC", layout="wide")
@@ -302,8 +303,9 @@ def render_about_page():
         "Query -> entity matching (exact / substring / partial / fuzzy) -> adaptive 1-2 hop "
         "graph traversal (the depth is auto-picked per query from the matched entity's "
         "connection count, with a manual override available) -> ranked facts -> optional "
-        "local-LLM (Ollama) summary grounded only in those retrieved facts. A BM25 lexical "
-        "baseline is also available for comparison."
+        "local-LLM (Ollama) summary grounded only in those retrieved facts. Retrieval "
+        "defaults to Auto: graph-first, falling back to a BM25 lexical search only when no "
+        "entity matches. Graph and BM25 can also be selected directly for comparison."
     )
 
     st.subheader("Tech stack")
@@ -353,10 +355,6 @@ def main():
         )
         return
     except Exception as exc:
-        # Covers a corrupted/unreadable graph file (e.g. pickle.UnpicklingError),
-        # a missing/mismatched entities.csv, or any other load-time failure -
-        # all of these mean "the saved graph isn't usable", which has the
-        # same fix (rebuild it) regardless of the specific exception type.
         st.error(
             f"The saved knowledge graph at `{config.GRAPH_FILE}` could not be loaded "
             f"({type(exc).__name__}: {exc}). Try rebuilding it with `python build_graph.py`."
@@ -379,7 +377,11 @@ def main():
             max_hops = st.radio("Max hops", options=[1, 2], index=config.MAX_HOPS - 1, horizontal=True)
 
         use_ollama = st.checkbox("Generate AI summary (requires Ollama)", value=True)
-        method = st.radio("Retrieval Method", ["Graph", "BM25"], index=0, horizontal=True)
+        method = st.radio(
+            "Retrieval Method", ["Auto", "Graph", "BM25"], index=0, horizontal=True,
+            help="Auto: graph retrieval when the query matches an entity, otherwise "
+                 "fall back to BM25 lexical search.",
+        )
 
     with st.form("query_form"):
         query = st.text_input("Enter a medical query", placeholder="What drugs interact with Warfarin?")
@@ -393,21 +395,28 @@ def main():
 
     if method == "Graph":
         result = retrieve_relationships(query, G, index, max_hops=max_hops, adaptive_hops=adaptive_hops)
+    elif method == "Auto":
+        # Graph-first policy: graph retrieval when the query matches an entity,
+        # lexical BM25 when no entity matched
+        result = retrieve_with_fallback(
+            query, G, index, get_bm25_retriever(), max_hops=max_hops, adaptive_hops=adaptive_hops,
+        )
     else:  # BM25
         # BM25 does no entity resolution at all - it only ranks records by
-        # lexical similarity to the raw query text. Adapted into the same
-        # RetrievalResult/RetrievedFact shape so the rest of the UI (graph
-        # viz, evidence table, AI summary) needs no special-casing.
+        # lexical similarity to the raw query text.
         bm25_retriever = get_bm25_retriever()
         bm25_results = bm25_retriever.search(query, top_k=config.TOP_K_RESULTS)
         facts = [lexical_result_to_fact(r, index, r.score) for r in bm25_results]
         result = RetrievalResult(query=query, facts=facts)
 
     # Lexical retrieval does not resolve an entity by design - only Graph can
-    # report "no matching entity found".
+    # report "no matching entity found" (Auto reports it by falling back).
     if method == "Graph" and result.matched_entity is None:
         st.warning("No matching medical entity was found in the current knowledge graph.")
         return
+
+    if result.used_lexical_fallback:
+        st.warning("No exact entity found, showing keyword matches for the raw query text.")
 
     if result.candidate_matches:
         alt_names = ", ".join(m.canonical_name for m in result.candidate_matches)
@@ -454,8 +463,8 @@ def main():
 
     st.subheader("Retrieved Evidence")
     st.dataframe(facts_to_dataframe(result.facts), width="stretch", hide_index=True)
-    if method != "Graph":
-        st.caption(f"Hop 0 = found via {method} lexical match, not graph traversal.")
+    if method == "BM25" or result.used_lexical_fallback:
+        st.caption("Hop 0 = found via BM25 lexical match, not graph traversal.")
     st.caption(f"Retrieved {len(result.facts)} relationships in {result.retrieval_time_ms:.1f}ms")
 
     if use_ollama:

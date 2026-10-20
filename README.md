@@ -1,152 +1,101 @@
-# 🧬 Medical Knowledge Graph-Based Information Retrieval System
+# MedGraphIR: Medical Knowledge Graph Information Retrieval
 
-MedGraphIR models drug-drug interactions and drug-disease relationships as a graph, then answers
-natural-language queries by matching an entity and retrieving its 1-2 hop neighborhood — not by 
-asking a language model to recall facts from memory.
+MedGraphIR models drug-drug interactions and drug-disease relationships as a knowledge graph and answers natural-language queries by matching an entity and retrieving its 1-2 hop neighborhood. Facts are retrieved from the data, not recalled by a language model.
 
-Retrieval happens over a real knowledge graph built from **DDInter 2.0**
-(~222k drug-drug interactions) and **PharmacotherapyDB** (physician-curated
-drug-disease indications), compared against a traditional TF-IDF baseline
-and a hybrid method, with results measured on a 30-query evaluation set —
-not assumed.
+> **Not a diagnosis tool.** It retrieves existing, sourced relationships. See [Medical Safety](#medical-safety).
 
-> **This is not a diagnosis tool.** It retrieves and summarizes existing,
-> sourced relationships. See [Medical Safety](#medical-safety) below.
-
-## Architecture
+## How it works
 
 ```mermaid
 flowchart TD
-    A[DDInter 2.0 + PharmacotherapyDB] --> B[Preprocessing]
-    B --> C[Entity Extraction / Normalization]
-    C --> D[Relation Extraction]
-    D --> E[NetworkX Knowledge Graph]
-    E --> F[Query Processing]
-    F --> G[Entity Matching]
-    G --> H[1-2 Hop Graph Retrieval]
-    H --> I[Relevant Facts + Source Provenance]
-    I --> J[Optional Ollama Summary]
-    I --> K[Streamlit UI]
-    J --> K
+    A[DDInter 2.0 + PharmacotherapyDB] --> B[Preprocessing + Entity Linking]
+    B --> C[NetworkX Knowledge Graph]
+    C --> D[Query Processing + Entity Matching]
+    D --> E[1-2 Hop Graph Retrieval]
+    D -. no entity found .-> F[BM25 Fallback]
+    E --> G[Facts + Source Provenance]
+    F --> G
+    G --> H[Optional Ollama Summary]
+    G --> I[Streamlit UI]
+    H --> I
 ```
 
-The knowledge graph is built **offline** by a standalone script; the
-Streamlit app only ever loads and queries the saved graph, never rebuilds
-it per request.
+The graph is built once, offline (`build_graph.py`). The app only loads and queries it.
 
 ## Features
 
-- **Graph-based retrieval** — tiered entity matching (exact / substring /
-  partial / fuzzy) with auto-adaptive 1-2 hop traversal
-- **BM25 lexical baseline** for comparison
-- **Measured evaluation**, not assumed — graph-derived neighbor metrics plus
-  a workflow for independent human relevance judgments
-- **Optional local LLM summary** (Ollama) grounded only in retrieved facts
-  — never invents medical information
-- **Streamlit UI** with Search, Evaluation, and About pages
+- **Graph retrieval:** tiered entity matching (exact, substring, partial, fuzzy) with adaptive 1-2 hop traversal, ranked by hop distance and severity/curator support.
+- **BM25 fallback:** if no entity matches, the query falls back to lexical search. Each result comes from one method, with no score blending.
+- **BM25 baseline** for comparison.
+- **Optional local LLM summary** (Ollama), using only the retrieved facts.
+- **Streamlit UI** with Search, Evaluation and About pages.
 
-## Quick Start
+## Quick start
 
 ```bash
 pip install -r requirements.txt
-
-python build_graph.py        # build the knowledge graph once (~25s)
-streamlit run app.py         # launch the UI
+python build_graph.py     # build the graph once (~25s)
+streamlit run app.py      # launch the UI
 ```
 
-Try a query: *"What drugs interact with Warfarin?"*
+Try: *"What drugs interact with Warfarin?"*
 
-To reproduce the evaluation numbers:
+## Evaluation
 
-```bash
-python evaluation/evaluate.py
-```
+Two evaluations, with different strengths:
 
-This graph-derived benchmark compares returned entities with direct neighbors
-from the same graph. It is useful for checking retrieval behavior, but it is
-not independent relevance ground truth. To evaluate whether retrieved records
-are relevant to a query, build a pooled candidate set, manually judge every
-candidate, and then score those judgments:
-
-```bash
-python evaluation/build_judgment_pool.py
-python evaluation/draft_judgments.py
-python evaluation/evaluate_judgments.py
-```
-
-The pool uses 30 varied queries from `evaluation/judgment_queries.csv` and
-collects the top results from graph and BM25 retrieval.
-Candidate order is deterministically shuffled per query and method/rank
-provenance is omitted from the annotation file to reduce assessor bias.
-Initial relevance values are conservative automatic suggestions based on
-whether a candidate contains the query's entity and expected relation; they
-are not human judgments until reviewed. The evaluator refuses to run until
-every row has a relevance grade. The judged evaluation reports
-P@5/10/20, pooled Recall@20, MAP@20, and graded NDCG@5/10. Recall is relative
-to relevant records found in this top-20-per-method pool, not exhaustive
-relevance over the full corpus.
-Rebuilding the pool preserves existing grades for matching query/record pairs;
-new or changed candidates must also be judged before evaluation.
-
-Both methods search the same processed relation records, but their query
-capabilities differ: graph retrieval resolves an entity and can filter
-relationship types before traversing neighbors, while BM25 ranks records
-lexically without entity resolution. This distinction should be considered
-when interpreting comparisons.
-
-## Results
-
-Graph-derived results on 30 test queries (`python evaluation/evaluate.py`):
+**1. Graph-derived benchmark** (`python evaluation/evaluate.py`): compares results with direct neighbors in the same graph. It checks retrieval behavior but is not independent ground truth, so it favors graph retrieval by construction.
 
 | Method | Precision | Recall | F1 | Avg. time |
 |---|---|---|---|---|
-| **Graph retrieval** | 1.000 | 0.699 | 0.717 | 2.0ms |
+| Graph retrieval | 1.000 | 0.699 | 0.717 | 2.0ms |
 | BM25 baseline | 0.594 | 0.465 | 0.359 | 2.6ms |
 
-These scores are against graph-derived expected neighbors, not independent
-human relevance judgments. Do not interpret them as evidence that graph
-retrieval is generally more relevant to users.
+**2. Pooled relevance judgments** (30 queries, top 20 from each method):
 
-Independent human-judgment results on the pooled 30-query set
-(`python evaluation/evaluate_judgments.py`) — the more meaningful comparison:
+```bash
+python evaluation/build_judgment_pool.py
+python evaluation/draft_judgments.py      # rule-based suggested grades
+python evaluation/evaluate_judgments.py
+```
+
+Candidates are shuffled per query and method/rank is hidden to reduce bias. Grades start as rule-based suggestions and should be checked by hand before the numbers are cited. Recall is relative to the relevant records found in this pool, not the full corpus.
 
 | Method | P@5 | P@20 | Recall@20 | MAP@20 | NDCG@10 |
 |---|---|---|---|---|---|
 | Graph retrieval | 0.807 | 0.573 | 0.648 | 0.865 | 0.959 |
 | BM25 baseline | 0.780 | 0.670 | 0.690 | 0.933 | 0.798 |
 
-Against independent judgments the two methods are close and neither
-dominates: BM25 leads on pooled MAP@20 and Recall@20, graph leads on NDCG and
-P@5. The graph-derived benchmark above is structurally favorable to graph
-retrieval, which is why the human-judgment numbers are the ones to trust.
+The two methods are close and neither dominates. BM25 leads on MAP@20 and Recall@20, and graph leads on NDCG and P@5. Graph returns fewer than 20 results for some queries, which lowers its P@20.
 
-## Tech Stack
+## Limitations
 
-Python, Pandas, NetworkX, scikit-learn, Streamlit, Pydantic, Ollama
-(optional).
+- Interaction evidence is only a severity label (DDInter's bulk export has no mechanism text).
+- Disease coverage is limited to the 97 diseases in PharmacotherapyDB.
+- Entity linking is name-based, not a full ontology linker (e.g. brand names may not resolve).
+- Queries with two entities resolve to a single entity (multi-entity path search is planned).
 
-## Project Structure
+## Project structure
 
 ```
-├── data/               Raw data, processed tables, saved graph
-├── src/                Pipeline modules (preprocessing, entity linking,
-│                       relation extraction, graph, retrieval, BM25
-│                       baseline, Ollama summarization)
-├── evaluation/          Graph-derived and human-judgment evaluation scripts
-├── build_graph.py       Standalone graph-build script
-├── app.py               Streamlit UI
-└── DOCUMENTATION.md      Full technical write-up
+├── data/          Raw data, processed tables, saved graph
+├── src/           Pipeline: preprocessing, entity linking, relation extraction,
+│                  graph, retrieval, BM25 baseline, fallback, Ollama summary
+├── evaluation/    Graph-derived and judgment-based evaluation
+├── build_graph.py Standalone graph builder
+├── app.py         Streamlit UI
+└── DOCUMENTATION.md  Full technical write-up
 ```
 
-## Data Sources
+## Data sources
 
-- **[DDInter 2.0](https://ddinter2.scbdd.com/)** — drug-drug interactions,
-  severity-labeled
-- **[PharmacotherapyDB 1.0](https://github.com/dhimmel/indications)** —
-  physician-curated drug-disease indications
+- [DDInter 2.0](https://ddinter2.scbdd.com/): severity-labeled drug-drug interactions (~222k)
+- [PharmacotherapyDB 1.0](https://github.com/dhimmel/indications): physician-curated drug-disease indications
+
+## Tech stack
+
+Python, Pandas, NetworkX, scikit-learn, Streamlit, Pydantic, Ollama (optional).
 
 ## Medical Safety
 
-This system is an **academic information retrieval prototype**. Retrieved
-information should not be used as a substitute for professional medical
-advice.
+This is an academic information retrieval prototype. Retrieved information is not a substitute for professional medical advice.

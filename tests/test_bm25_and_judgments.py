@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 import pandas as pd
 
@@ -9,7 +10,9 @@ from evaluation.relevance_metrics import (
     recall_at_k,
 )
 from evaluation.draft_judgments import _grade
-from src.bm25_baseline import BM25Retriever
+from src.bm25_baseline import BM25Retriever, LexicalResult
+from src.fallback_retrieval import retrieve_with_fallback
+from src.retrieval import EntityIndex, EntityMatch, RetrievalResult
 
 
 def relation(record_id, source, target, evidence=""):
@@ -112,6 +115,64 @@ class DraftJudgmentTests(unittest.TestCase):
         })
         grade, _ = _grade(row)
         self.assertEqual(grade, 0)
+
+
+class FallbackRetrievalTests(unittest.TestCase):
+    def setUp(self):
+        self.index = EntityIndex(alias_lookup={}, node_info={})
+
+    @staticmethod
+    def _lexical_result():
+        return LexicalResult(
+            record_id="r1",
+            source_entity="Aspirin",
+            source_entity_id="drug::aspirin",
+            relationship="INTERACTS_WITH",
+            target_entity="Warfarin",
+            target_entity_id="drug::warfarin",
+            evidence="",
+            attributes={},
+            score=1.0,
+        )
+
+    def test_matched_entity_uses_graph_result_and_skips_lexical_search(self):
+        matched = RetrievalResult(
+            query="q",
+            matched_entity=EntityMatch(
+                entity_id="drug::x", canonical_name="X", entity_type="DRUG",
+                match_type="EXACT", match_score=1.0,
+            ),
+        )
+        bm25 = mock.Mock()
+        with mock.patch("src.fallback_retrieval.retrieve_relationships", return_value=matched):
+            result = retrieve_with_fallback("q", None, self.index, bm25)
+
+        self.assertIs(result, matched)
+        bm25.search.assert_not_called()
+
+    def test_no_entity_match_falls_back_to_lexical_results(self):
+        bm25 = mock.Mock()
+        bm25.search.return_value = [self._lexical_result()]
+        with mock.patch(
+            "src.fallback_retrieval.retrieve_relationships",
+            return_value=RetrievalResult(query="q"),
+        ):
+            result = retrieve_with_fallback("q", None, self.index, bm25)
+
+        self.assertTrue(result.used_lexical_fallback)
+        self.assertIsNone(result.matched_entity)
+        self.assertEqual([fact.record_id for fact in result.facts], ["r1"])
+
+    def test_empty_graph_result_kept_when_lexical_finds_nothing(self):
+        bm25 = mock.Mock()
+        bm25.search.return_value = []
+        graph_result = RetrievalResult(query="q")
+        with mock.patch("src.fallback_retrieval.retrieve_relationships", return_value=graph_result):
+            result = retrieve_with_fallback("q", None, self.index, bm25)
+
+        self.assertIs(result, graph_result)
+        self.assertFalse(result.used_lexical_fallback)
+        self.assertEqual(result.facts, [])
 
 
 if __name__ == "__main__":
