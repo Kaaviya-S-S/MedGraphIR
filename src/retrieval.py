@@ -212,31 +212,22 @@ def search_entity(query: str, index: EntityIndex) -> list[EntityMatch]:
     words = normalized_query.split()
     ngrams = _word_ngrams(words, index.max_alias_words)
 
-    # Tier 2: a known entity name appears as a phrase inside the query.
-    # Uses the RAW (non-stopword-filtered) words: it checks exact equality
-    # against a known alias, so a filler word alone ("with") could never
-    # accidentally equal a full multi-word entity name - no collision risk.
+    # Tier 2: Find a known alias that exactly matches a phrase in the query.
+    # Uses the original query words, including stopwords, because each n-gram
+    # must match a complete alias.
     for ngram in ngrams:
         if ngram in index.alias_lookup:
             score = len(ngram.split()) / len(words)
             return _matches_for_alias(ngram, index, "SUBSTRING", round(score, 3))
 
-    # Tiers 3-4 scan for a QUERY fragment inside/near a known alias, which
-    # IS vulnerable to a filler word spuriously colliding with an unrelated
-    # alias (e.g. "with" inside "...(3350 with electrolytes)") - so these
-    # tiers use stopword-filtered content words instead of the raw query.
+    # Generate n-grams from content words to reduce false matches caused by
+    # common words in the query, such as "with".
     content_ngrams = _word_ngrams(_content_words(words), index.max_alias_words)
 
-    # Tier 3: a query word/phrase is a whole-word fragment inside a longer
-    # known alias (e.g. query "diabetes" -> alias "type 2 diabetes mellitus").
-    # Word-boundary regex avoids matching inside an unrelated longer word.
-    # ALL containing aliases are returned (not just the shortest) because a
-    # short query term can genuinely be ambiguous - e.g. "diabetes" matches
-    # "gestational diabetes", "type 1 diabetes mellitus" AND "type 2
-    # diabetes mellitus", three distinct real entities. Silently picking
-    # one via a string-length heuristic would hide the other two instead
-    # of surfacing the ambiguity, which the brief explicitly calls for
-    # handling (see DOCUMENTATION.md Milestone 10 - "multiple possible entity matches").
+    # Tier 3: Find aliases containing a query phrase as a whole-word sequence.
+    # Return all matching aliases to preserve ambiguity when a phrase refers
+    # to multiple entities (e.g., "diabetes" matching several diabetes types).
+    # Sort aliases by length for display, with shorter aliases first.
     for ngram in content_ngrams:
         pattern = re.compile(rf"\b{re.escape(ngram)}\b")
         containing = [alias for alias in index.alias_lookup if pattern.search(alias)]
@@ -248,8 +239,9 @@ def search_entity(query: str, index: EntityIndex) -> list[EntityMatch]:
                 matches.extend(_matches_for_alias(alias, index, "PARTIAL", score))
             return matches
 
-    # Tier 4: fuzzy fallback for typos, tried per n-gram (not the whole
-    # query, which would never score well against a short entity name)
+    # Tier 4: Find the closest alias to each content-word n-gram.
+    # Limit n-gram length and apply the configured similarity cutoff.
+    # Keep the alias with the highest similarity across all n-grams.
     best_alias, best_score = None, 0.0
     fuzzy_words = _content_words(words)
     for ngram in _word_ngrams(fuzzy_words, min(index.max_alias_words, config.FUZZY_NGRAM_MAX_WORDS)):
@@ -416,10 +408,7 @@ def retrieve_relationships(
     adaptive_hops: bool = False,
     adaptive_hop_top_k: int | None = None,
 ) -> RetrievalResult:
-    """The full Milestone 5 pipeline for one query. Never raises on
-    "no match" / "no results" - callers (evaluation, UI) check
-    `matched_entity is None` / `facts == []` and handle it explicitly
-    (see DOCUMENTATION.md Milestone 10 - error handling).
+    """The pipeline for one query. 
 
     `adaptive_hops=True` ignores `max_hops` and instead picks the hop
     depth per query based on the matched entity's own 1-hop connection
@@ -430,16 +419,14 @@ def retrieve_relationships(
     saves the traversal cost). Below that, expansion to 2 hops runs as
     usual to add context for an otherwise sparse entity.
 
-    The "enough" threshold is `top_k` by default, but callers that request
-    a wider candidate pool than they'll actually display (hybrid_retrieval.
-    retrieve_hybrid uses top_k=candidate_pool_k=50 to have more to merge
-    from, while the user-facing result size is 20) should pass their real
+    The "enough" threshold is `top_k` by default, but a caller that requests
+    a wider candidate pool than it will actually display should pass its real
     display size as `adaptive_hop_top_k` - otherwise the decision would be
-    judged against the oversized pool and wrongly call entities "low
-    degree" that aren't from the caller's actual point of view.
+    judged against the oversized pool and wrongly call entities "low degree"
+    that aren't from the caller's actual point of view.
 
-    Off by default - existing callers (evaluate.py, hybrid_retrieval.py's
-    internal call) are unaffected unless they opt in.
+    Off by default - existing callers (evaluate.py) are unaffected unless
+    they opt in.
     """
     start = time.perf_counter()
     print(f'[RETRIEVAL] Query: "{query}"')
@@ -449,13 +436,10 @@ def retrieve_relationships(
         print("[RETRIEVAL] No matching entity found")
         return RetrievalResult(query=query, retrieval_time_ms=(time.perf_counter() - start) * 1000)
 
-    # Best match wins; alternatives are kept as candidates so the caller can
-    # surface "did you mean...?" instead of silently guessing. For the
-    # high-confidence tiers (EXACT/SUBSTRING) only exact score ties count
-    # as genuinely ambiguous. For the lower-confidence tiers (PARTIAL,
-    # FUZZY) every other match found is kept as a candidate, since those
-    # tiers surface real ambiguity by design (e.g. "diabetes" matching
-    # three distinct diabetes-related diseases).
+    # Rank matches by match score, then by entity mention count.
+    # PARTIAL and FUZZY matches retain all alternative entities as candidates.
+    # EXACT and SUBSTRING matches retain only alternatives tied with the
+    # best match score, avoiding unnecessary ambiguity from weaker matches.
     matches.sort(key=lambda m: (-m.match_score, -index.node_info[m.entity_id]["mention_count"]))
     best = matches[0]
     if best.match_type in ("PARTIAL", "FUZZY"):
@@ -471,13 +455,10 @@ def retrieve_relationships(
     one_hop = retrieve_one_hop(G, best.entity_id, relationship_filter)
     relationship_filter_relaxed = False
 
-    # The keyword-inferred filter is a best-effort guess, not a guarantee
-    # the entity has that relationship type at all (e.g. "What diseases
-    # does Doripenem treat?" infers TREATS, but Doripenem only has
-    # INTERACTS_WITH edges in the graph). Rather than dead-ending with "no
-    # results" when the entity genuinely has other real data, relax the
-    # filter and show everything, clearly flagged so the UI can explain
-    # what happened instead of silently switching topics.
+    # If the filter produces no results, retry without it so that existing
+    # relationships of other types are not omitted. Record the relaxation
+    # so the caller can explain why the results may not match the query's
+    # requested relationship type.
     if not one_hop and relationship_filter:
         print(f"[RETRIEVAL] No {relationship_filter} relationships found for this entity - "
               f"relaxing filter and showing all relationship types")
@@ -485,10 +466,11 @@ def retrieve_relationships(
         relationship_filter = None
         one_hop = retrieve_one_hop(G, best.entity_id, relationship_filter)
 
+    # In adaptive mode, compare the full 1-hop result count with the threshold.
+    # Use adaptive_hop_top_k when supplied; otherwise, use top_k.
+    # Retrieve 2-hop relationships only when direct connections fall below
+    # the threshold. Otherwise, respect the configured max_hops.
     if adaptive_hops:
-        # one_hop is already the FULL (untruncated) 1-hop fact list, so its
-        # length is exactly the entity's relevant connection count - no
-        # separate degree lookup needed.
         threshold = adaptive_hop_top_k if adaptive_hop_top_k is not None else top_k
         effective_max_hops = 1 if len(one_hop) >= threshold else 2
         print(f"[RETRIEVAL] Adaptive hops: {best.canonical_name} has {len(one_hop)} direct connections "

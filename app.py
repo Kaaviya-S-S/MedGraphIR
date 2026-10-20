@@ -8,6 +8,8 @@ st.cache_resource so it loads once per server process rather than once per
 query - retrieval itself stays fast even though loading a 161k-edge graph from disk is not free.
 """
 
+import base64
+
 import altair as alt
 import pandas as pd
 import streamlit as st
@@ -16,21 +18,31 @@ from pyvis.network import Network
 
 from src import config
 from src.answer_generator import generate_answer
-from src.hybrid_retrieval import keyword_result_to_fact
-from src.keyword_baseline import load_keyword_baseline
+from src.bm25_baseline import lexical_result_to_fact, load_bm25_baseline
 from src.retrieval import RetrievalResult, RetrievedFact, load_retrieval_engine, retrieve_relationships
 
-st.set_page_config(page_title="Medical Knowledge Graph IR", page_icon="\U0001F9EC", layout="wide")
+st.set_page_config(page_title="MedGraphIR", page_icon="\U0001F9EC", layout="wide")
+
+_BACKGROUND_IMAGE_PATH = config.PROJECT_ROOT / "assets" / "bg1.jpg"
+
+@st.cache_resource(show_spinner=False)
+def _load_background_css(image_path) -> str:
+    encoded = base64.b64encode(image_path.read_bytes()).decode()
+    return f"""
+    <style>
+    .stApp {{
+        background-image: url("data:image/jpeg;base64,{encoded}");
+        background-size: cover;
+        background-position: center top;
+        background-attachment: fixed;
+    }}
+    </style>
+    """
+
 
 _NODE_COLORS = {"DRUG": "#4C9AFF", "DISEASE": "#FF7452"}
-# Validated 3-slot categorical palette (blue/orange/aqua) - passes CVD and
-# normal-vision separation checks for all-pairs comparison (see dataviz
-# skill reference palette). Fixed order, never cycled: Precision always
-# slot 1, Recall always slot 2, F1 always slot 3, on every chart.
 _METRIC_COLORS = ["#2a78d6", "#eb6834", "#1baf7a"]
 _EVAL_DIR = config.PROJECT_ROOT / "evaluation"
-_SCORE_METRICS = ["precision", "recall", "f1", "precision_at_5", "precision_at_10"]
-
 
 @st.cache_resource(show_spinner="Loading knowledge graph...")
 def get_engine():
@@ -38,13 +50,13 @@ def get_engine():
     return load_retrieval_engine()
 
 
-@st.cache_resource(show_spinner="Building TF-IDF index...")
-def get_keyword_retriever():
-    """Loaded lazily (only when TF-IDF is actually selected) since fitting
-    the TF-IDF matrix takes ~10s - Graph stays the default and should not
-    pay that cost on ordinary startup.
+@st.cache_resource(show_spinner="Building BM25 index...")
+def get_bm25_retriever():
+    """Loaded lazily (only when BM25 is actually selected) since building the
+    index takes several seconds - Graph stays the default and should not pay
+    that cost on ordinary startup.
     """
-    return load_keyword_baseline()
+    return load_bm25_baseline()
 
 
 def render_subgraph_html(G, facts: list[RetrievedFact], matched_entity_id: str | None) -> str:
@@ -53,7 +65,7 @@ def render_subgraph_html(G, facts: list[RetrievedFact], matched_entity_id: str |
     the picture consistent with the evidence table shown next to it: every
     edge drawn here has a matching row below, nothing extra sneaks in.
 
-    `matched_entity_id` is None for pure TF-IDF results, which never
+    `matched_entity_id` is None for pure lexical (BM25) results, which never
     resolve a specific entity - the graph then just shows all retrieved
     records with no node emphasized.
     """
@@ -104,8 +116,8 @@ def facts_to_dataframe(facts: list[RetrievedFact]) -> pd.DataFrame:
     return df.loc[:, (df != "").any(axis=0)]  # drop columns that are empty for every row
 
 
-_METHOD_LABELS = {"graph": "Graph", "hybrid": "Hybrid", "keyword": "TF-IDF"}
-_METHOD_ORDER = ["graph", "hybrid", "keyword"]  # best-to-worst on this eval set, see section 9.1
+_METHOD_LABELS = {"graph": "Graph", "bm25": "BM25"}
+_METHOD_ORDER = ["graph", "bm25"]
 
 
 def _grouped_bar_chart(wide_df: pd.DataFrame, metrics: list[str], y_title: str) -> alt.Chart:
@@ -162,20 +174,18 @@ def _single_bar_chart(wide_df: pd.DataFrame, column: str, y_title: str, color: s
 def render_evaluation_page():
     """Displays the results of evaluation/evaluate.py - it reads the CSVs
     that script already saved, rather than re-running the ~30s evaluation
-    (graph + TF-IDF + hybrid + weight sweep, over 30 queries) on every page
-    view. Same "build once, load fast" pattern as the knowledge graph
-    itself (see DOCUMENTATION.md section 13, Performance).
+    (graph + BM25, over 30 queries) on every page view. Same "build once,
+    load fast" pattern as the knowledge graph itself.
     """
     st.title("Evaluation")
     st.markdown(
-        "Actual measured results from `evaluation/evaluate.py` - graph retrieval vs. the "
-        "TF-IDF keyword baseline vs. hybrid, over 30 manually-curated test queries with "
-        "ground truth derived directly from the graph. Nothing on this page is simulated."
+        "This page separates the original graph-derived neighbor benchmark from the newer "
+        "independent human-judgment evaluation. The graph-derived benchmark checks retrieval "
+        "against graph neighbors; it is not an independent measure of user relevance."
     )
 
     summary_path = _EVAL_DIR / "results_summary.csv"
     detailed_path = _EVAL_DIR / "results_detailed.csv"
-    sweep_path = _EVAL_DIR / "results_weight_sweep.csv"
     test_queries_path = _EVAL_DIR / "test_queries.csv"
 
     if not summary_path.exists():
@@ -185,9 +195,16 @@ def render_evaluation_page():
         )
         return
 
-    summary_df = pd.read_csv(summary_path, index_col=0).reindex(_METHOD_ORDER)
+    saved_summary = pd.read_csv(summary_path, index_col=0)
+    available_methods = [method for method in _METHOD_ORDER if method in saved_summary.index]
+    summary_df = saved_summary.reindex(available_methods)
+    if "bm25" not in saved_summary.index:
+        st.info("The saved graph-derived results predate BM25. Re-run `python evaluation/evaluate.py` to refresh them.")
     if test_queries_path.exists():
-        st.caption(f"Evaluated on {len(pd.read_csv(test_queries_path))} test queries.")
+        st.caption(
+            f"Graph-derived benchmark: {len(pd.read_csv(test_queries_path))} queries. "
+            "Its expected neighbors are generated from the same graph being searched."
+        )
 
     st.subheader("1. Overall metrics")
     table_df = summary_df.rename(index=_METHOD_LABELS)[
@@ -204,7 +221,7 @@ def render_evaluation_page():
     )
 
     st.subheader("2. Metric comparison chart")
-    st.caption("Macro-averaged Precision, Recall, and F1 across the 30-query evaluation set.")
+    st.caption("Macro-averaged Precision, Recall, and F1 across the graph-derived evaluation set.")
     chart_df = summary_df[["precision", "recall", "f1"]].rename(index=_METHOD_LABELS)
     chart_df.columns = ["Precision", "Recall", "F1"]
     st.altair_chart(_grouped_bar_chart(chart_df, ["Precision", "Recall", "F1"], "Score"), width="stretch")
@@ -214,34 +231,44 @@ def render_evaluation_page():
     time_df = summary_df[["retrieval_time_ms"]].rename(index=_METHOD_LABELS)
     st.altair_chart(_single_bar_chart(time_df, "retrieval_time_ms", "Time (ms)"), width="stretch")
     st.caption(
-        "Graph is both the most precise **and** the fastest per query, once the graph "
-        "itself is loaded once at startup - TF-IDF and Hybrid both pay a per-query cost "
-        "the graph traversal doesn't."
+        "Per-query latency excludes one-time graph/index loading. Compare methods "
+        "within the same run and hardware; the graph-derived relevance metrics below "
+        "are not independent user-relevance judgments."
     )
+
+    judged_summary_path = _EVAL_DIR / "results_judged_summary.csv"
+    judged_detailed_path = _EVAL_DIR / "results_judged_detailed.csv"
+    st.subheader("4. Independent human-judgment evaluation")
+    if judged_summary_path.exists():
+        judged_df = pd.read_csv(judged_summary_path, index_col=0).rename(index=_METHOD_LABELS)
+        judged_df.index.name = "Method"
+        st.dataframe(judged_df, width="stretch")
+        st.caption(
+            "These scores use human-assigned relevance grades for pooled records "
+            "(0 = irrelevant, 1 = related, 2 = directly answers)."
+        )
+        if judged_detailed_path.exists():
+            with st.expander("Per-query human-judgment results"):
+                st.dataframe(pd.read_csv(judged_detailed_path), width="stretch", hide_index=True)
+    else:
+        st.info(
+            "To produce independent relevance results, run "
+            "`python evaluation/build_judgment_pool.py`, assign a 0/1/2 relevance "
+            "grade to every row in `evaluation/judgment_candidates.csv`, then run "
+            "`python evaluation/evaluate_judgments.py`."
+        )
 
     st.divider()
     st.markdown(
-        "**Honest finding:** graph retrieval has perfect precision (1.0) by construction - "
-        "every fact it returns came from traversing a real edge, so it can't be wrong. "
-        "Hybrid sits between graph and keyword on every metric; it never beats pure graph "
-        "on this dataset (0/30 query wins on F1), because graph's relationship-type "
-        "filtering already leaves little for lexical scoring to usefully add, and every "
-        "chance to introduce TF-IDF noise instead. Expand \"Per-query results\" below for "
-        "the full breakdown, including exactly where hybrid's precision collapses."
+        "**Interpretation:** the graph-derived benchmark is structurally favorable to "
+        "graph retrieval because its expected entities are taken from that same graph. "
+        "It measures neighbor reproduction, not independent user relevance. Consult the "
+        "human-judgment section for relevance comparisons; lexical methods also do not "
+        "perform the graph method's entity resolution or relationship filtering."
     )
 
-    if sweep_path.exists():
-        with st.expander("Hybrid weight sweep (does leaning more lexical or more structural help?)"):
-            st.caption("alpha = TF-IDF weight, beta = Graph weight.")
-            sweep_df = pd.read_csv(sweep_path, index_col=0).rename(columns={"precision": "Precision", "recall": "Recall", "f1": "F1"})
-            st.altair_chart(_grouped_bar_chart(sweep_df, ["Precision", "Recall", "F1"], "Score"), width="stretch")
-            st.caption(
-                "F1 rises monotonically as beta (graph weight) increases - more graph, "
-                "not more TF-IDF, is what helps hybrid get closer to pure graph."
-            )
-
     if detailed_path.exists():
-        with st.expander("Per-query results (all 30 queries x 3 methods)"):
+        with st.expander("Per-query results"):
             detailed_df = pd.read_csv(detailed_path)
             method_filter = st.multiselect(
                 "Filter by method", options=sorted(detailed_df["method"].unique()),
@@ -275,9 +302,8 @@ def render_about_page():
         "Query -> entity matching (exact / substring / partial / fuzzy) -> adaptive 1-2 hop "
         "graph traversal (the depth is auto-picked per query from the matched entity's "
         "connection count, with a manual override available) -> ranked facts -> optional "
-        "local-LLM (Ollama) summary grounded only in those retrieved facts. A TF-IDF keyword "
-        "baseline and a hybrid (TF-IDF + graph) method are also implemented for comparison - "
-        "see the Evaluation page."
+        "local-LLM (Ollama) summary grounded only in those retrieved facts. A BM25 lexical "
+        "baseline is also available for comparison."
     )
 
     st.subheader("Tech stack")
@@ -291,6 +317,7 @@ def render_about_page():
     )
 
 def main():
+    # st.markdown(_load_background_css(_BACKGROUND_IMAGE_PATH), unsafe_allow_html=True)
     with st.sidebar:
         st.markdown("### Medical KG IR")
         page = st.radio(
@@ -352,7 +379,7 @@ def main():
             max_hops = st.radio("Max hops", options=[1, 2], index=config.MAX_HOPS - 1, horizontal=True)
 
         use_ollama = st.checkbox("Generate AI summary (requires Ollama)", value=True)
-        method = st.radio("Retrieval Method", ["Graph", "TF-IDF"], index=0, horizontal=True)
+        method = st.radio("Retrieval Method", ["Graph", "BM25"], index=0, horizontal=True)
 
     with st.form("query_form"):
         query = st.text_input("Enter a medical query", placeholder="What drugs interact with Warfarin?")
@@ -366,19 +393,19 @@ def main():
 
     if method == "Graph":
         result = retrieve_relationships(query, G, index, max_hops=max_hops, adaptive_hops=adaptive_hops)
-    else:  # TF-IDF
-        # TF-IDF does no entity resolution at all - it only ranks records
-        # by lexical similarity to the raw query text. Adapted into the
-        # same RetrievalResult/RetrievedFact shape so the rest of the UI
-        # (graph viz, evidence table, AI summary) needs no special-casing.
-        keyword_retriever = get_keyword_retriever()
-        kw_results = keyword_retriever.search(query, top_k=config.TOP_K_RESULTS)
-        facts = [keyword_result_to_fact(r, index, r.score) for r in kw_results]
+    else:  # BM25
+        # BM25 does no entity resolution at all - it only ranks records by
+        # lexical similarity to the raw query text. Adapted into the same
+        # RetrievalResult/RetrievedFact shape so the rest of the UI (graph
+        # viz, evidence table, AI summary) needs no special-casing.
+        bm25_retriever = get_bm25_retriever()
+        bm25_results = bm25_retriever.search(query, top_k=config.TOP_K_RESULTS)
+        facts = [lexical_result_to_fact(r, index, r.score) for r in bm25_results]
         result = RetrievalResult(query=query, facts=facts)
 
-    # TF-IDF never resolves an entity by design - only Graph can report
-    # "no matching entity found".
-    if method != "TF-IDF" and result.matched_entity is None:
+    # Lexical retrieval does not resolve an entity by design - only Graph can
+    # report "no matching entity found".
+    if method == "Graph" and result.matched_entity is None:
         st.warning("No matching medical entity was found in the current knowledge graph.")
         return
 
@@ -395,7 +422,7 @@ def main():
         st.markdown(f"**{match.canonical_name}**  •  {match.entity_type}  •  "
                     f"matched via {match.match_type} (score {match.match_score})")
     else:
-        st.caption("TF-IDF does not resolve a specific entity - showing the top "
+        st.caption(f"{method} does not resolve a specific entity - showing the top "
                     "lexically similar records for your query text.")
 
     if not result.facts:
@@ -428,7 +455,7 @@ def main():
     st.subheader("Retrieved Evidence")
     st.dataframe(facts_to_dataframe(result.facts), width="stretch", hide_index=True)
     if method != "Graph":
-        st.caption("Hop 0 = found via TF-IDF lexical match, not graph traversal.")
+        st.caption(f"Hop 0 = found via {method} lexical match, not graph traversal.")
     st.caption(f"Retrieved {len(result.facts)} relationships in {result.retrieval_time_ms:.1f}ms")
 
     if use_ollama:

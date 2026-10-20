@@ -98,17 +98,10 @@ FUZZY_MATCH_CUTOFF = 0.72
 FUZZY_NGRAM_MAX_WORDS = 4
 
 # ---------------------------------------------------------------------------
-# Hybrid retrieval (TF-IDF lexical relevance + graph structural relevance)
+# BM25 lexical baseline
 # ---------------------------------------------------------------------------
-# HybridScore = HYBRID_ALPHA * normalized_tfidf_score + HYBRID_BETA * normalized_graph_score
-HYBRID_ALPHA_DEFAULT = 0.5
-HYBRID_BETA_DEFAULT = 0.5
-# Each underlying method (TF-IDF, graph) is queried for this many candidates
-# BEFORE merging/re-ranking - wider than TOP_K_RESULTS so a candidate that
-# ranks modestly in one method but well in the other still has a chance to
-# surface after the two scores are combined, rather than being cut off by
-# either method's own top-K truncation first.
-HYBRID_CANDIDATE_POOL_K = 50
+BM25_K1 = 1.5
+BM25_B = 0.75
 
 # ---------------------------------------------------------------------------
 # Ollama (optional local LLM, used only in later milestones)
