@@ -1,8 +1,8 @@
-# MedGraphIR: Medical Knowledge Graph Information Retrieval
+# 🧬 Medical Knowledge Graph-Based Information Retrieval System
 
 MedGraphIR models drug-drug interactions and drug-disease relationships as a knowledge graph and answers natural-language queries by matching an entity and retrieving its 1-2 hop neighborhood. Facts are retrieved from the data, not recalled by a language model.
 
-> **Not a diagnosis tool.** It retrieves existing, sourced relationships. See [Medical Safety](#medical-safety).
+This is not a diagnosis tool. It retrieves and summarizes existing, sourced relationships. See Medical Safety below.
 
 ## How it works
 
