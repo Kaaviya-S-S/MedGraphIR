@@ -8,6 +8,7 @@ this policy falls back to BM25 over the raw query text.
 """
 
 import time
+from collections.abc import Callable
 
 import networkx as nx
 
@@ -19,10 +20,11 @@ def retrieve_with_fallback(
     query: str,
     G: nx.DiGraph,
     index: EntityIndex,
-    bm25_retriever: BM25Retriever,
+    bm25_retriever: BM25Retriever | None,
     max_hops: int = config.MAX_HOPS,
     top_k: int = config.TOP_K_RESULTS,
     adaptive_hops: bool = False,
+    bm25_loader: Callable[[], BM25Retriever] | None = None,
 ) -> RetrievalResult:
     """Graph retrieval first; lexical BM25 only when no entity matched.
 
@@ -37,6 +39,11 @@ def retrieve_with_fallback(
     )
     if result.matched_entity is not None:
         return result
+
+    if bm25_retriever is None:
+        if bm25_loader is None:
+            raise ValueError("A BM25 retriever or lazy BM25 loader is required for fallback retrieval.")
+        bm25_retriever = bm25_loader()
 
     lexical_results = bm25_retriever.search(query, top_k=top_k)
     if not lexical_results:

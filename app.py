@@ -399,7 +399,8 @@ def main():
         # Graph-first policy: graph retrieval when the query matches an entity,
         # lexical BM25 when no entity matched
         result = retrieve_with_fallback(
-            query, G, index, get_bm25_retriever(), max_hops=max_hops, adaptive_hops=adaptive_hops,
+            query, G, index, None, max_hops=max_hops, adaptive_hops=adaptive_hops,
+            bm25_loader=get_bm25_retriever,
         )
     else:  # BM25
         # BM25 does no entity resolution at all - it only ranks records by

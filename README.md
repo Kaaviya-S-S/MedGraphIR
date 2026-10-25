@@ -4,6 +4,12 @@ MedGraphIR models drug-drug interactions and drug-disease relationships as a kno
 
 This is not a diagnosis tool. It retrieves and summarizes existing, sourced relationships. See Medical Safety below.
 
+## Objective and outcome
+
+**Objective:** make it easier to find sourced drug-interaction and drug-disease facts by searching in everyday language.
+
+**Outcome:** the system matches the query to a drug or disease, retrieves its connected facts, and shows their source evidence. If it cannot match an entity, it can use BM25 keyword search. An optional local model can summarize retrieved facts, but it does not supply medical facts.
+
 ## How it works
 
 ```mermaid
@@ -79,8 +85,7 @@ The two methods are close and neither dominates. BM25 leads on MAP@20 and Recall
 
 ```
 ├── data/          Raw data, processed tables, saved graph
-├── src/           Pipeline: preprocessing, entity linking, relation extraction,
-│                  graph, retrieval, BM25 baseline, fallback, Ollama summary
+├── src/           Data and graph pipelines, retrieval, BM25, optional summary
 ├── evaluation/    Graph-derived and judgment-based evaluation
 ├── build_graph.py Standalone graph builder
 ├── app.py         Streamlit UI

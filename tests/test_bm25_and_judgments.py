@@ -11,7 +11,9 @@ from evaluation.relevance_metrics import (
 )
 from evaluation.draft_judgments import _grade
 from src.bm25_baseline import BM25Retriever, LexicalResult
+from src.data_pipeline import clean_indications, clean_interactions, link_entities
 from src.fallback_retrieval import retrieve_with_fallback
+from src.graph_pipeline import build_graph, extract_structured_relations
 from src.retrieval import EntityIndex, EntityMatch, RetrievalResult
 
 
@@ -150,6 +152,34 @@ class FallbackRetrievalTests(unittest.TestCase):
         self.assertIs(result, matched)
         bm25.search.assert_not_called()
 
+    def test_matched_entity_does_not_load_lazy_bm25_retriever(self):
+        matched = RetrievalResult(
+            query="q",
+            matched_entity=EntityMatch(
+                entity_id="drug::x", canonical_name="X", entity_type="DRUG",
+                match_type="EXACT", match_score=1.0,
+            ),
+        )
+        bm25_loader = mock.Mock()
+        with mock.patch("src.fallback_retrieval.retrieve_relationships", return_value=matched):
+            result = retrieve_with_fallback("q", None, self.index, None, bm25_loader=bm25_loader)
+
+        self.assertIs(result, matched)
+        bm25_loader.assert_not_called()
+
+    def test_no_entity_match_loads_lazy_bm25_retriever(self):
+        bm25 = mock.Mock()
+        bm25.search.return_value = [self._lexical_result()]
+        bm25_loader = mock.Mock(return_value=bm25)
+        with mock.patch(
+            "src.fallback_retrieval.retrieve_relationships",
+            return_value=RetrievalResult(query="q"),
+        ):
+            result = retrieve_with_fallback("q", None, self.index, None, bm25_loader=bm25_loader)
+
+        bm25_loader.assert_called_once_with()
+        self.assertTrue(result.used_lexical_fallback)
+
     def test_no_entity_match_falls_back_to_lexical_results(self):
         bm25 = mock.Mock()
         bm25.search.return_value = [self._lexical_result()]
@@ -173,6 +203,82 @@ class FallbackRetrievalTests(unittest.TestCase):
         self.assertIs(result, graph_result)
         self.assertFalse(result.used_lexical_fallback)
         self.assertEqual(result.facts, [])
+
+
+class GraphPipelineTests(unittest.TestCase):
+    def test_build_keeps_cleaned_source_facts_and_their_provenance(self):
+        interactions = pd.DataFrame(
+            [
+                {
+                    "DDInterID_A": "DD1",
+                    "DDInterID_B": "DD2",
+                    "Drug_A": " Warfarin ",
+                    "Drug_B": "Aspirin",
+                    "Level": "Major",
+                    "atc_code": "A",
+                    "atc_label": "Alimentary tract",
+                },
+                {
+                    "DDInterID_A": "DD1",
+                    "DDInterID_B": "DD2",
+                    "Drug_A": "Warfarin",
+                    "Drug_B": "Aspirin",
+                    "Level": "Moderate",
+                    "atc_code": "B",
+                    "atc_label": "Blood",
+                },
+                {
+                    "DDInterID_A": "DD3",
+                    "DDInterID_B": "DD4",
+                    "Drug_A": " ",
+                    "Drug_B": "Missing",
+                    "Level": "Minor",
+                    "atc_code": "A",
+                    "atc_label": "Alimentary tract",
+                },
+            ]
+        )
+        indications = pd.DataFrame(
+            [
+                {
+                    "drugbank_id": "DB1",
+                    "doid_id": "DOID:1",
+                    "drug": "Warfarin",
+                    "disease": "Heart failure",
+                    "category": "DM",
+                    "n_curators": 2,
+                    "n_resources": 3,
+                },
+                {
+                    "drugbank_id": "DB2",
+                    "doid_id": "DOID:2",
+                    "drug": "Aspirin",
+                    "disease": "Other disease",
+                    "category": "NOT",
+                    "n_curators": 1,
+                    "n_resources": 1,
+                },
+            ]
+        )
+
+        interactions = clean_interactions(interactions)
+        indications = clean_indications(indications)
+        entities, interactions, indications = link_entities(interactions, indications)
+        relations = extract_structured_relations(interactions, indications)
+        graph = build_graph(entities, relations)
+
+        self.assertEqual(len(interactions), 1)
+        self.assertEqual(len(indications), 1)
+        self.assertEqual(len(relations), 2)
+        self.assertEqual(
+            graph["drug::warfarin"]["drug::aspirin"]["severity"],
+            "Major",
+        )
+        self.assertEqual(
+            graph["drug::warfarin"]["disease::heart_failure"]["relationship"],
+            "TREATS",
+        )
+        self.assertFalse(graph.has_edge("drug::aspirin", "drug::warfarin"))
 
 
 if __name__ == "__main__":

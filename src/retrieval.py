@@ -25,7 +25,7 @@ search) - each tier only runs if the previous one found nothing:
      "worfarin"). Fully explainable: it's a string-similarity ratio, not a
      black box.
 
-Multi-hop expansion follows the graph_builder.py convention: INTERACTS_WITH
+Multi-hop expansion follows the graph_pipeline.py convention: INTERACTS_WITH
 edges are stored in one direction only per DDInter's source data, so
 1-hop retrieval always checks BOTH outgoing and incoming edges of the
 matched node - otherwise half of a drug's interactions would be invisible
@@ -43,8 +43,8 @@ import pandas as pd
 from pydantic import BaseModel
 
 from src import config
-from src.entity_linking import normalize_text
-from src.graph_builder import load_graph
+from src.data_pipeline import normalize_text
+from src.graph_pipeline import load_graph
 
 # ---------------------------------------------------------------------------
 # Result models
