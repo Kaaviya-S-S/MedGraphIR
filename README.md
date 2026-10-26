@@ -31,9 +31,10 @@ The graph is built once, offline (`build_graph.py`). The app only loads and quer
 ## Features
 
 - **Graph retrieval:** tiered entity matching (exact, substring, partial, fuzzy) with adaptive 1-2 hop traversal, ranked by hop distance and severity/curator support.
+- **Multi-entity retrieval:** rule-based intent detection supports direct relationships, shared results (AND), and combined results (OR) for multiple named drugs/diseases. Optional neighborhood context is off by default and kept separate from answer evidence.
 - **BM25 fallback:** if no entity matches, the query falls back to lexical search. Each result comes from one method, with no score blending.
 - **BM25 baseline** for comparison.
-- **Optional local LLM summary** (Ollama), using only the retrieved facts.
+- **Optional local LLM summary** (Ollama), using only the primary retrieved facts for single- and multi-entity queries.
 - **Streamlit UI** with Search, Evaluation and About pages.
 
 ## Quick start
@@ -45,6 +46,12 @@ streamlit run app.py      # launch the UI
 ```
 
 Try: *"What drugs interact with Warfarin?"*
+
+Multi-entity examples:
+
+- *"Does Warfarin interact with Acetylsalicylic acid?"* — direct relationship lookup.
+- *"Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?"* — shared results (AND).
+- *"Which diseases does Acetaminophen or Acetylsalicylic acid treat?"* — combined results (OR).
 
 ## Evaluation
 
@@ -74,12 +81,23 @@ Candidates are shuffled per query and method/rank is hidden to reduce bias. Grad
 
 The two methods are close and neither dominates. BM25 leads on MAP@20 and Recall@20, and graph leads on NDCG and P@5. Graph returns fewer than 20 results for some queries, which lowers its P@20.
 
+**3. Multi-entity evaluation:** separate, manually judged benchmark for direct, AND, and OR queries:
+
+```bash
+python evaluation/build_multi_entity_judgment_pool.py
+# Manually grade each candidate (0/1/2) and set human_reviewed=yes
+python evaluation/evaluate_multi_entity_judgments.py
+```
+
+No multi-entity scores are reported until all pooled candidates have been manually reviewed.
+
 ## Limitations
 
 - Interaction evidence is only a severity label (DDInter's bulk export has no mechanism text).
 - Disease coverage is limited to the 97 diseases in PharmacotherapyDB.
 - Entity linking is name-based, not a full ontology linker (e.g. brand names may not resolve).
-- Queries with two entities resolve to a single entity (multi-entity path search is planned).
+- Multi-entity intent detection uses simple wording rules; unclear queries are reported as ambiguous rather than interpreted freely.
+- AI summaries are generated locally through Ollama and summarize retrieved facts; they are not medical advice.
 
 ## Project structure
 

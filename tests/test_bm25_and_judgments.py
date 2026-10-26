@@ -1,6 +1,7 @@
 import unittest
 from unittest import mock
 
+import networkx as nx
 import pandas as pd
 
 from evaluation.relevance_metrics import (
@@ -11,10 +12,22 @@ from evaluation.relevance_metrics import (
 )
 from evaluation.draft_judgments import _grade
 from src.bm25_baseline import BM25Retriever, LexicalResult
+from src.answer_generator import build_multi_entity_prompt, generate_answer
 from src.data_pipeline import clean_indications, clean_interactions, link_entities
 from src.fallback_retrieval import retrieve_with_fallback
 from src.graph_pipeline import build_graph, extract_structured_relations
-from src.retrieval import EntityIndex, EntityMatch, RetrievalResult
+from src.retrieval import (
+    EntityIndex,
+    EntityMatch,
+    MultiEntityRetrievalResult,
+    QueryIntent,
+    RetrievalResult,
+    RetrievedFact,
+    analyze_entity_query,
+    build_entity_index,
+    retrieve_multi_entity_relationships,
+    search_entity,
+)
 
 
 def relation(record_id, source, target, evidence=""):
@@ -117,6 +130,374 @@ class DraftJudgmentTests(unittest.TestCase):
         })
         grade, _ = _grade(row)
         self.assertEqual(grade, 0)
+
+
+class MultiEntityQueryAnalysisTests(unittest.TestCase):
+    def setUp(self):
+        self.index = build_entity_index(
+            pd.DataFrame(
+                [
+                    {
+                        "entity_id": "drug::warfarin",
+                        "canonical_name": "Warfarin",
+                        "entity_type": "DRUG",
+                        "mention_count": 20,
+                        "aliases": "Warfarin",
+                    },
+                    {
+                        "entity_id": "drug::aspirin",
+                        "canonical_name": "Aspirin",
+                        "entity_type": "DRUG",
+                        "mention_count": 15,
+                        "aliases": "Aspirin",
+                    },
+                    {
+                        "entity_id": "disease::diabetes",
+                        "canonical_name": "Type 2 diabetes",
+                        "entity_type": "DISEASE",
+                        "mention_count": 10,
+                        "aliases": "Diabetes|Type 2 diabetes",
+                    },
+                    {
+                        "entity_id": "disease::asthma",
+                        "canonical_name": "Asthma",
+                        "entity_type": "DISEASE",
+                        "mention_count": 8,
+                        "aliases": "Asthma",
+                    },
+                ]
+            )
+        )
+
+    def test_finds_multiple_entities_and_prefers_longest_alias(self):
+        analysis = analyze_entity_query(
+            "What conditions link Type 2 diabetes and asthma?", self.index
+        )
+
+        self.assertEqual(
+            [entity.entity_id for entity in analysis.entities],
+            ["disease::diabetes", "disease::asthma"],
+        )
+        self.assertEqual(analysis.intent, QueryIntent.AMBIGUOUS)
+
+    def test_classifies_direct_relationship_questions(self):
+        analysis = analyze_entity_query(
+            "Does Warfarin interact with Aspirin?", self.index
+        )
+
+        self.assertEqual(analysis.intent, QueryIntent.DIRECT_RELATIONSHIP)
+
+    def test_classifies_explicit_and_query(self):
+        analysis = analyze_entity_query(
+            "What drugs interact with both Warfarin and Aspirin?", self.index
+        )
+
+        self.assertEqual(analysis.intent, QueryIntent.AND)
+
+    def test_classifies_set_query_with_implicit_and(self):
+        analysis = analyze_entity_query(
+            "What drugs interact with Warfarin and Aspirin?", self.index
+        )
+
+        self.assertEqual(analysis.intent, QueryIntent.AND)
+
+    def test_classifies_existence_question_for_shared_drugs_as_and(self):
+        analysis = analyze_entity_query(
+            "Are there drugs that treat Type 2 diabetes and asthma?",
+            self.index,
+        )
+
+        self.assertEqual(analysis.intent, QueryIntent.AND)
+
+    def test_classifies_or_query(self):
+        analysis = analyze_entity_query(
+            "Which drugs interact with Warfarin or Aspirin?", self.index
+        )
+
+        self.assertEqual(analysis.intent, QueryIntent.OR)
+
+    def test_ambiguous_multi_entity_query_is_not_guessed(self):
+        analysis = analyze_entity_query("Warfarin and Aspirin", self.index)
+
+        self.assertEqual(analysis.intent, QueryIntent.AMBIGUOUS)
+
+    def test_single_and_unmatched_queries_keep_distinct_intents(self):
+        single = analyze_entity_query("What interacts with Warfarin?", self.index)
+        unmatched = analyze_entity_query("xyzabc123", self.index)
+
+        self.assertEqual(single.intent, QueryIntent.SINGLE_ENTITY)
+        self.assertEqual(unmatched.intent, QueryIntent.NONE)
+
+    def test_repeated_alias_for_same_entity_is_deduplicated(self):
+        analysis = analyze_entity_query("Warfarin and warfarin", self.index)
+
+        self.assertEqual(len(analysis.entities), 1)
+        self.assertEqual(analysis.entities[0].entity_id, "drug::warfarin")
+
+    def test_numeric_result_count_does_not_match_numbered_entity_name(self):
+        matches = search_entity(
+            "What are the top 2 drugs to treat cancer?", self.index
+        )
+
+        self.assertNotIn(
+            "disease::diabetes",
+            {match.entity_id for match in matches},
+        )
+
+
+class MultiEntityRetrievalTests(unittest.TestCase):
+    def setUp(self):
+        self.index = build_entity_index(
+            pd.DataFrame(
+                [
+                    ("drug::warfarin", "Warfarin", "DRUG", "Warfarin"),
+                    ("drug::aspirin", "Aspirin", "DRUG", "Aspirin"),
+                    ("drug::metformin", "Metformin", "DRUG", "Metformin"),
+                    ("drug::shared", "Shared drug", "DRUG", "Shared drug"),
+                    ("disease::diabetes", "Diabetes", "DISEASE", "Diabetes"),
+                    ("disease::asthma", "Asthma", "DISEASE", "Asthma"),
+                ],
+                columns=["entity_id", "canonical_name", "entity_type", "aliases"],
+            ).assign(mention_count=1)
+        )
+        self.graph = nx.DiGraph()
+        for entity_id, info in self.index.node_info.items():
+            self.graph.add_node(entity_id, **info)
+
+        self.graph.add_edge(
+            "drug::aspirin",
+            "drug::warfarin",
+            relationship="INTERACTS_WITH",
+            record_id="ddinter_reverse",
+            evidence="DDInter severity: Major",
+            severity="Major",
+        )
+        self.graph.add_edge(
+            "drug::metformin",
+            "disease::diabetes",
+            relationship="TREATS",
+            record_id="treats_diabetes_metformin",
+            evidence="Metformin indication",
+            n_curators=2,
+            n_resources=1,
+        )
+        self.graph.add_edge(
+            "drug::aspirin",
+            "disease::diabetes",
+            relationship="TREATS",
+            record_id="treats_diabetes_aspirin",
+            evidence="Aspirin indication",
+            n_curators=1,
+            n_resources=1,
+        )
+        self.graph.add_edge(
+            "drug::shared",
+            "disease::asthma",
+            relationship="TREATS",
+            record_id="treats_asthma_shared",
+            evidence="Shared drug indication",
+            n_curators=1,
+            n_resources=1,
+        )
+        self.graph.add_edge(
+            "drug::shared",
+            "disease::diabetes",
+            relationship="TREATS",
+            record_id="treats_diabetes_shared",
+            evidence="Shared drug indication",
+            n_curators=1,
+            n_resources=1,
+        )
+
+    def test_direct_relationship_finds_reverse_stored_interaction(self):
+        result = retrieve_multi_entity_relationships(
+            "Does Warfarin interact with Aspirin?", self.graph, self.index
+        )
+
+        self.assertEqual(result.intent, QueryIntent.DIRECT_RELATIONSHIP)
+        self.assertEqual([fact.record_id for fact in result.direct_facts], ["ddinter_reverse"])
+        self.assertEqual(result.direct_facts[0].source_entity_id, "drug::aspirin")
+
+    def test_and_returns_only_shared_result_entities_and_supporting_records(self):
+        result = retrieve_multi_entity_relationships(
+            "Which diseases are treated by both Metformin and Aspirin?",
+            self.graph,
+            self.index,
+        )
+
+        self.assertEqual(result.intent, QueryIntent.AND)
+        self.assertEqual(result.result_entity_ids, ["disease::diabetes"])
+        self.assertEqual(
+            {fact.record_id for fact in result.facts},
+            {"treats_diabetes_metformin", "treats_diabetes_aspirin"},
+        )
+
+    def test_and_supports_three_or_more_named_entities(self):
+        result = retrieve_multi_entity_relationships(
+            "Which diseases are treated by Metformin, Aspirin, and Shared drug?",
+            self.graph,
+            self.index,
+        )
+
+        self.assertEqual(result.intent, QueryIntent.AND)
+        self.assertEqual(result.result_entity_ids, ["disease::diabetes"])
+        self.assertEqual(
+            {fact.record_id for fact in result.facts},
+            {
+                "treats_diabetes_metformin",
+                "treats_diabetes_aspirin",
+                "treats_diabetes_shared",
+            },
+        )
+
+    def test_or_returns_union_of_result_entities(self):
+        result = retrieve_multi_entity_relationships(
+            "Which drugs treat Diabetes or Asthma?", self.graph, self.index
+        )
+
+        self.assertEqual(result.intent, QueryIntent.OR)
+        self.assertEqual(
+            set(result.result_entity_ids),
+            {"drug::metformin", "drug::aspirin", "drug::shared"},
+        )
+        self.assertEqual(
+            {fact.record_id for fact in result.facts},
+            {
+                "treats_diabetes_metformin",
+                "treats_diabetes_aspirin",
+                "treats_diabetes_shared",
+                "treats_asthma_shared",
+            },
+        )
+
+    def test_mixed_drug_disease_query_returns_directional_treatment_fact(self):
+        result = retrieve_multi_entity_relationships(
+            "Does Metformin treat Diabetes?", self.graph, self.index
+        )
+
+        self.assertEqual(result.intent, QueryIntent.DIRECT_RELATIONSHIP)
+        self.assertEqual([fact.record_id for fact in result.direct_facts], ["treats_diabetes_metformin"])
+        self.assertEqual(
+            (result.direct_facts[0].source_entity_id, result.direct_facts[0].target_entity_id),
+            ("drug::metformin", "disease::diabetes"),
+        )
+
+    def test_indirect_path_is_not_reported_as_direct_evidence(self):
+        result = retrieve_multi_entity_relationships(
+            "Does Warfarin treat Metformin?",
+            self.graph,
+            self.index,
+            include_context=True,
+        )
+
+        self.assertEqual(result.direct_facts, [])
+        self.assertEqual(result.facts, [])
+        self.assertTrue(result.context_facts)
+        self.assertNotIn("ddinter_reverse", {fact.record_id for fact in result.direct_facts})
+
+    def test_ambiguous_query_returns_no_guessed_results(self):
+        result = retrieve_multi_entity_relationships(
+            "Warfarin and Aspirin", self.graph, self.index
+        )
+
+        self.assertEqual(result.intent, QueryIntent.AMBIGUOUS)
+        self.assertEqual(result.facts, [])
+        self.assertEqual(result.context_facts, [])
+
+    def test_context_is_separate_from_primary_results(self):
+        result = retrieve_multi_entity_relationships(
+            "Does Warfarin interact with Aspirin?",
+            self.graph,
+            self.index,
+            include_context=True,
+        )
+
+        self.assertEqual([fact.record_id for fact in result.direct_facts], ["ddinter_reverse"])
+        self.assertNotIn(
+            "ddinter_reverse",
+            {fact.record_id for fact in result.context_facts},
+        )
+
+
+class MultiEntityAnswerTests(unittest.TestCase):
+    def setUp(self):
+        asthma = EntityMatch(
+            entity_id="disease::asthma",
+            canonical_name="Asthma",
+            entity_type="DISEASE",
+            match_type="SUBSTRING",
+            match_score=0.5,
+        )
+        migraine = EntityMatch(
+            entity_id="disease::migraine",
+            canonical_name="Migraine",
+            entity_type="DISEASE",
+            match_type="SUBSTRING",
+            match_score=0.5,
+        )
+        self.result = MultiEntityRetrievalResult(
+            query="Are there drugs that treat asthma and migraine?",
+            entities=[asthma, migraine],
+            intent=QueryIntent.AND,
+            facts=[
+                RetrievedFact(
+                    source_entity_id="drug::prednisone",
+                    source_name="Prednisone",
+                    relationship="TREATS",
+                    target_entity_id="disease::asthma",
+                    target_name="Asthma",
+                    hop=1,
+                    record_id="prednisone_asthma",
+                    evidence="Asthma indication",
+                    rank_score=10,
+                ),
+                RetrievedFact(
+                    source_entity_id="drug::prednisone",
+                    source_name="Prednisone",
+                    relationship="TREATS",
+                    target_entity_id="disease::migraine",
+                    target_name="Migraine",
+                    hop=1,
+                    record_id="prednisone_migraine",
+                    evidence="Migraine indication",
+                    rank_score=10,
+                ),
+            ],
+            context_facts=[
+                RetrievedFact(
+                    source_entity_id="drug::other",
+                    source_name="Other drug",
+                    relationship="TREATS",
+                    target_entity_id="disease::asthma",
+                    target_name="Asthma",
+                    hop=2,
+                    record_id="context_only",
+                    evidence="Context only",
+                    rank_score=5,
+                )
+            ],
+        )
+
+    def test_multi_entity_prompt_explains_and_and_excludes_neighborhood_context(self):
+        prompt = build_multi_entity_prompt(self.result.query, self.result)
+
+        self.assertIn("Query intent: and", prompt)
+        self.assertIn("supporting facts", prompt)
+        self.assertIn("Prednisone --[TREATS]--> Asthma", prompt)
+        self.assertIn("Prednisone --[TREATS]--> Migraine", prompt)
+        self.assertNotIn("Other drug", prompt)
+        self.assertNotIn("Context only", prompt)
+
+    def test_generate_answer_accepts_multi_entity_result(self):
+        ollama = mock.Mock()
+        ollama.generate.return_value = {"response": "Prednisone is linked to both diseases."}
+        with mock.patch.dict("sys.modules", {"ollama": ollama}):
+            answer = generate_answer(self.result.query, self.result)
+
+        self.assertTrue(answer.ollama_available)
+        self.assertEqual(answer.facts_used, 2)
+        self.assertEqual(answer.summary, "Prednisone is linked to both diseases.")
+        self.assertIn("Retrieved primary facts", ollama.generate.call_args.kwargs["prompt"])
 
 
 class FallbackRetrievalTests(unittest.TestCase):

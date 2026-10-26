@@ -166,6 +166,9 @@ medical-graph-ir/
 │   ├── build_judgment_pool.py Pools graph + BM25 top-20 candidates for human judgment
 │   ├── draft_judgments.py     Rule-based draft relevance grades for the pool
 │   ├── evaluate_judgments.py  Scores rankings against the human-judged pool
+│   ├── multi_entity_queries.csv Curated direct / AND / OR query set
+│   ├── build_multi_entity_judgment_pool.py Pools candidates for manual review
+│   ├── evaluate_multi_entity_judgments.py Evaluates reviewed multi-entity rankings
 │   ├── relevance_metrics.py   P@K / Recall@K / MAP@K / graded NDCG@K
 │   └── results_*.csv          Generated result tables
 ├── build_graph.py         Standalone script: runs the full pipeline, saves the graph
@@ -247,7 +250,7 @@ vocabulary and validated the same way. It's not wired into the current
 pipeline, not for any Ollama setup reason, but because neither data
 source has a free-text field to run it on (see Limitations). The code is
 ready for whenever one gets added — a different Ollama use case from the
-answer-generation stage, which *is* exercised end-to-end (section 9.2).
+answer-generation stage, which *is* exercised end-to-end (section 9.3).
 
 ### 8.3 Knowledge graph (built by `src/graph_pipeline.py` / `build_graph.py`)
 
@@ -383,6 +386,35 @@ It is deliberately not part of the benchmark: every query in
 fallback path never triggers there and its scores would be identical to pure
 graph retrieval.
 
+### 8.7 Multi-entity retrieval
+
+The search page can handle queries that explicitly name multiple entities.
+`find_query_entities()` scans known aliases, prefers longer overlapping
+names, and removes duplicate mentions. A rule-based intent detector
+recognizes direct relationship, AND/shared-result, and OR/combined-result
+queries. If the wording does not clearly fit one of these patterns, the UI
+asks the user to clarify rather than guessing.
+
+- **Direct relationship:** checks for source-backed edges between named
+  entities. Stored interaction edges are checked in either endpoint order
+  because DDInter interactions are symmetric; returned facts preserve the
+  actual stored direction and source record. A path through an intermediate
+  node is never reported as a direct relationship.
+- **AND:** intersects the one-hop result entity sets for all named entities
+  and returns the records that support each shared result.
+- **OR:** unions the result entity sets and returns the supporting source
+  records. If the query names the result type (drugs or diseases), results
+  are restricted to that type.
+- **Optional neighborhood context:** the sidebar can add one- or two-hop
+  facts in a separate section. They are context only, not direct evidence
+  between the named entities. This is off by default; enable it only when
+  exploring nearby graph facts, not when interpreting the primary answer.
+
+Multi-entity intent rules are deliberately limited and are not unrestricted
+natural-language understanding. These queries are not yet included in the
+existing single-entity benchmark. Optional AI summaries can summarize the
+primary multi-entity facts; neighborhood context is excluded from the prompt.
+
 ## 9. Evaluation Methodology
 
 `evaluation/test_queries.csv` holds 30 manually-curated queries. I picked
@@ -486,13 +518,39 @@ That is the useful result — it shows the graph-derived benchmark's
 apparent graph superiority does not survive an independent relevance
 measure, which is exactly why both tracks are reported.
 
-### 9.2 Optional Ollama summary (`src/answer_generator.py`)
+### 9.2 Multi-entity human-judgment evaluation
+
+Multi-entity retrieval has a separate benchmark because its direct,
+intersection (AND), and union (OR) tasks differ from the existing
+single-entity queries. The starter set in
+`evaluation/multi_entity_queries.csv` includes two- and three-entity
+queries and uses names present in the current graph.
+
+Build a pooled candidate list from multi-entity results and BM25, then
+review every candidate manually:
+
+```bash
+python evaluation/build_multi_entity_judgment_pool.py
+# Edit evaluation/multi_entity_judgment_candidates.csv:
+# relevance = 0 (irrelevant), 1 (related), or 2 (direct answer)
+# human_reviewed = yes only after a person has checked the row
+python evaluation/evaluate_multi_entity_judgments.py
+```
+
+The pool shuffles candidates deterministically and does not expose method
+or rank. Existing grades are preserved if the pool is rebuilt. Evaluation
+refuses to run unless every candidate is graded and marked
+`human_reviewed=yes`; it reports P@5/10/20, pooled Recall@20, MAP@20, and
+NDCG@10 for the multi-entity method and BM25. No multi-entity relevance
+scores are reported yet because the pool still needs human review.
+
+### 9.3 Optional Ollama summary (`src/answer_generator.py`)
 
 The last, strictly optional stage. `generate_answer(query, result)` takes
-an already-computed `RetrievalResult` and asks a local Ollama model to
-summarize it — retrieval and ranking are fully done first, so a bad or
-missing LLM can change how the answer is phrased but never which facts
-were found.
+already-computed single- or multi-entity retrieval results and asks a local
+Ollama model to summarize the primary facts — retrieval and ranking are fully
+done first, so a bad or missing LLM can change how the answer is phrased but
+never which facts were found.
 
 The prompt gives the model retrieved facts as numbered context, each
 labeled `[direct]` (1-hop) or `[2-hop]` (extra context only) — added
@@ -509,6 +567,10 @@ with an explanatory note for every failure mode: no facts to summarize,
 `ollama` not installed, the service unreachable, the model not pulled, or
 an empty response. The caller always has `result.facts` regardless, so
 the app works with or without Ollama.
+
+For multi-entity results, the prompt includes the named entities and detected
+intent (direct, AND, or OR). It contains only primary result facts; optional
+neighborhood context is never sent to the model.
 
 ```bash
 python -m src.answer_generator
@@ -540,7 +602,7 @@ achieve. Also confirmed via `AppTest` that the AI Summary section shows a
 real `st.success` box with generated text instead of the fallback
 caption.
 
-### 9.3 Streamlit app (`app.py`)
+### 9.4 Streamlit app (`app.py`)
 
 ```bash
 streamlit run app.py
@@ -620,14 +682,14 @@ tree and catches exceptions directly:
 - Auto-adaptive hops: confirmed Warfarin's table only has `Hop=1` rows
   and Doripenem's has both `Hop=1` and `Hop=2` — the decision is real.
 - Caught a minor real issue this way too: `st.dataframe(...,
-  use_container_width=True)` triggered a deprecation warning past its
+  width='stretch)` triggered a deprecation warning past its
   stated removal date — switched to `width="stretch"`.
 
 Also started the server for real and confirmed it serves on
 `localhost:8501` (HTTP 200) — `AppTest` covers correctness, but a real
 browser is the only way to see the rendered pyvis graph.
 
-### 9.4 Error handling pass (Milestone 10)
+### 9.5 Error handling pass (Milestone 10)
 
 A dedicated pass through every scenario the brief requires, tested with
 `AppTest` and, where it mattered, against the real saved graph file
@@ -679,6 +741,13 @@ entity names contain markdown-special characters (`*`, `_`, backtick,
 - Disease coverage is limited to the 97 diseases in PharmacotherapyDB.
 - Entity resolution is name-based (normalized string matching), not a
   full medical ontology linker like UMLS or ScispaCy.
+- Multi-entity intent detection is rule-based; it supports a small set of
+  direct, AND, and OR query patterns and reports unclear patterns as
+  ambiguous.
+- Multi-entity evaluation depends on manual review of the separate pooled
+  benchmark; no relevance scores are valid until that review is complete.
+- Optional Ollama summaries can cover multi-entity results, using only
+  primary facts and not optional neighborhood context.
 - DDInter uses generic/INN drug names (`Acetylsalicylic acid`, not
   `Aspirin`), so a brand-name query without fuzzy matching would miss an
   entity that's actually present.
@@ -707,5 +776,8 @@ advice.
 - [x] **Milestone 8** — Ollama answer generation
 - [x] **Milestone 9** — Streamlit app
 - [x] **Milestone 10** — Error handling pass
+- [x] **Extension** — Multi-entity query analysis and intent detection (direct / AND / OR)
+- [x] **Extension** — Multi-entity graph retrieval and separated neighborhood context
+- [x] **Extension** — Multi-entity UI and human-judgment evaluation workflow (manual judgments pending)
 - [x] **Extension** — Hybrid retrieval (TF-IDF + Graph fusion) — evaluated, never beat pure Graph on this dataset, so removed; BM25 remains the single lexical baseline and the evaluated methods are graph + BM25
-- [x] **Extension** — Auto-adaptive hop depth (section 9.3) — picks 1 vs 2 hops per query from the matched entity's connection count, manual override still available
+- [x] **Extension** — Auto-adaptive hop depth (section 9.4) — picks 1 vs 2 hops per query from the matched entity's connection count, manual override still available

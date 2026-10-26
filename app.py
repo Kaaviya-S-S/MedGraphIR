@@ -20,7 +20,16 @@ from src import config
 from src.answer_generator import generate_answer
 from src.bm25_baseline import lexical_result_to_fact, load_bm25_baseline
 from src.fallback_retrieval import retrieve_with_fallback
-from src.retrieval import RetrievalResult, RetrievedFact, load_retrieval_engine, retrieve_relationships
+from src.retrieval import (
+    MultiEntityRetrievalResult,
+    QueryIntent,
+    RetrievalResult,
+    RetrievedFact,
+    analyze_entity_query,
+    load_retrieval_engine,
+    retrieve_multi_entity_relationships,
+    retrieve_relationships,
+)
 
 st.set_page_config(page_title="MedGraphIR", page_icon="\U0001F9EC", layout="wide")
 
@@ -60,7 +69,12 @@ def get_bm25_retriever():
     return load_bm25_baseline()
 
 
-def render_subgraph_html(G, facts: list[RetrievedFact], matched_entity_id: str | None) -> str:
+def render_subgraph_html(
+    G,
+    facts: list[RetrievedFact],
+    matched_entity_id: str | None,
+    highlighted_entity_ids: set[str] | None = None,
+) -> str:
     """Interactive pyvis visualization built strictly from the retrieved
     facts (not a full induced subgraph of every node pair) - this keeps
     the picture consistent with the evidence table shown next to it: every
@@ -73,7 +87,10 @@ def render_subgraph_html(G, facts: list[RetrievedFact], matched_entity_id: str |
     net = Network(height="520px", width="100%", directed=True, notebook=False, cdn_resources="in_line")
     net.barnes_hut(spring_length=160, spring_strength=0.02)
 
-    node_ids = {matched_entity_id} if matched_entity_id else set()
+    highlighted = set(highlighted_entity_ids or ())
+    if matched_entity_id:
+        highlighted.add(matched_entity_id)
+    node_ids = set(highlighted)
     for f in facts:
         node_ids.add(f.source_entity_id)
         node_ids.add(f.target_entity_id)
@@ -85,7 +102,7 @@ def render_subgraph_html(G, facts: list[RetrievedFact], matched_entity_id: str |
             label=data["canonical_name"],
             title=f"{data['canonical_name']} ({data['entity_type']})",
             color=_NODE_COLORS.get(data["entity_type"], "#999999"),
-            size=34 if node_id == matched_entity_id else 18,
+            size=34 if node_id in highlighted else 18,
         )
 
     seen_edges = set()
@@ -218,19 +235,25 @@ def render_evaluation_page():
             "Precision": "{:.3f}", "Recall": "{:.3f}", "F1": "{:.3f}",
             "P@5": "{:.3f}", "P@10": "{:.3f}", "Avg. time (ms)": "{:.1f}",
         }),
-        width="stretch",
+        width='stretch',
     )
 
     st.subheader("2. Metric comparison chart")
     st.caption("Macro-averaged Precision, Recall, and F1 across the graph-derived evaluation set.")
     chart_df = summary_df[["precision", "recall", "f1"]].rename(index=_METHOD_LABELS)
     chart_df.columns = ["Precision", "Recall", "F1"]
-    st.altair_chart(_grouped_bar_chart(chart_df, ["Precision", "Recall", "F1"], "Score"), width="stretch")
+    st.altair_chart(
+        _grouped_bar_chart(chart_df, ["Precision", "Recall", "F1"], "Score"),
+        width='stretch',
+    )
 
     st.subheader("3. Retrieval speed")
     st.caption("Average time per query, milliseconds.")
     time_df = summary_df[["retrieval_time_ms"]].rename(index=_METHOD_LABELS)
-    st.altair_chart(_single_bar_chart(time_df, "retrieval_time_ms", "Time (ms)"), width="stretch")
+    st.altair_chart(
+        _single_bar_chart(time_df, "retrieval_time_ms", "Time (ms)"),
+        width='stretch',
+    )
     st.caption(
         "Per-query latency excludes one-time graph/index loading. Compare methods "
         "within the same run and hardware; the graph-derived relevance metrics below "
@@ -243,14 +266,18 @@ def render_evaluation_page():
     if judged_summary_path.exists():
         judged_df = pd.read_csv(judged_summary_path, index_col=0).rename(index=_METHOD_LABELS)
         judged_df.index.name = "Method"
-        st.dataframe(judged_df, width="stretch")
+        st.dataframe(judged_df, width='stretch')
         st.caption(
             "These scores use human-assigned relevance grades for pooled records "
             "(0 = irrelevant, 1 = related, 2 = directly answers)."
         )
         if judged_detailed_path.exists():
             with st.expander("Per-query human-judgment results"):
-                st.dataframe(pd.read_csv(judged_detailed_path), width="stretch", hide_index=True)
+                st.dataframe(
+                    pd.read_csv(judged_detailed_path),
+                    width='stretch',
+                    hide_index=True,
+                )
     else:
         st.info(
             "To produce independent relevance results, run "
@@ -277,7 +304,7 @@ def render_evaluation_page():
             )
             st.dataframe(
                 detailed_df[detailed_df["method"].isin(method_filter)],
-                width="stretch", hide_index=True,
+                width='stretch', hide_index=True,
             )
 
 
@@ -382,6 +409,18 @@ def main():
             help="Auto: graph retrieval when the query matches an entity, otherwise "
                  "fall back to BM25 lexical search.",
         )
+        include_multi_context = st.checkbox(
+            "Include neighborhood context for multi-entity queries",
+            value=False,
+            help="Adds nearby graph facts in a separate section; these are not direct facts between the named entities.",
+        )
+        context_hops = st.radio(
+            "Context depth",
+            options=[1, 2],
+            index=0,
+            horizontal=True,
+            disabled=not include_multi_context,
+        )
 
     with st.form("query_form"):
         query = st.text_input("Enter a medical query", placeholder="What drugs interact with Warfarin?")
@@ -393,26 +432,58 @@ def main():
         st.warning("Please enter a query.")
         return
 
-    if method == "Graph":
-        result = retrieve_relationships(query, G, index, max_hops=max_hops, adaptive_hops=adaptive_hops)
-    elif method == "Auto":
-        # Graph-first policy: graph retrieval when the query matches an entity,
-        # lexical BM25 when no entity matched
-        result = retrieve_with_fallback(
-            query, G, index, None, max_hops=max_hops, adaptive_hops=adaptive_hops,
-            bm25_loader=get_bm25_retriever,
-        )
-    else:  # BM25
-        # BM25 does no entity resolution at all - it only ranks records by
-        # lexical similarity to the raw query text.
-        bm25_retriever = get_bm25_retriever()
-        bm25_results = bm25_retriever.search(query, top_k=config.TOP_K_RESULTS)
-        facts = [lexical_result_to_fact(r, index, r.score) for r in bm25_results]
-        result = RetrievalResult(query=query, facts=facts)
+    multi_result: MultiEntityRetrievalResult | None = None
+    if method != "BM25":
+        analysis = analyze_entity_query(query, index)
+        if len(analysis.entities) > 1 and analysis.intent == QueryIntent.AMBIGUOUS:
+            names = ", ".join(entity.canonical_name for entity in analysis.entities)
+            st.warning(
+                f"I found these entities: {names}, but could not determine whether you mean "
+                "a direct relationship, results related to all of them (AND), or results "
+                "related to any of them (OR). Please clarify the query."
+            )
+            return
+
+        if len(analysis.entities) > 1 and analysis.intent in (
+            QueryIntent.DIRECT_RELATIONSHIP,
+            QueryIntent.AND,
+            QueryIntent.OR,
+        ):
+            multi_result = retrieve_multi_entity_relationships(
+                query,
+                G,
+                index,
+                include_context=include_multi_context,
+                context_hops=context_hops,
+            )
+            result = RetrievalResult(
+                query=query,
+                relationship_filter=multi_result.relationship_filter,
+                facts=multi_result.facts,
+                retrieval_time_ms=multi_result.retrieval_time_ms,
+            )
+
+    if multi_result is None:
+        if method == "Graph":
+            result = retrieve_relationships(query, G, index, max_hops=max_hops, adaptive_hops=adaptive_hops)
+        elif method == "Auto":
+            # Graph-first policy: graph retrieval when the query matches an entity,
+            # lexical BM25 when no entity matched
+            result = retrieve_with_fallback(
+                query, G, index, None, max_hops=max_hops, adaptive_hops=adaptive_hops,
+                bm25_loader=get_bm25_retriever,
+            )
+        else:  # BM25
+            # BM25 does no entity resolution at all - it only ranks records by
+            # lexical similarity to the raw query text.
+            bm25_retriever = get_bm25_retriever()
+            bm25_results = bm25_retriever.search(query, top_k=config.TOP_K_RESULTS)
+            facts = [lexical_result_to_fact(r, index, r.score) for r in bm25_results]
+            result = RetrievalResult(query=query, facts=facts)
 
     # Lexical retrieval does not resolve an entity by design - only Graph can
     # report "no matching entity found" (Auto reports it by falling back).
-    if method == "Graph" and result.matched_entity is None:
+    if method == "Graph" and multi_result is None and result.matched_entity is None:
         st.warning("No matching medical entity was found in the current knowledge graph.")
         return
 
@@ -427,51 +498,101 @@ def main():
         )
 
     match = result.matched_entity
-    st.subheader("Matched Entity")
-    if match:
+    if multi_result is not None:
+        st.subheader("Entities in Query")
+        st.markdown(", ".join(
+            f"**{entity.canonical_name}** ({entity.entity_type.lower()})"
+            for entity in multi_result.entities
+        ))
+        st.caption(f"Query intent: **{multi_result.intent.value.upper()}**")
+    else:
+        st.subheader("Matched Entity")
+    if multi_result is None and match:
         st.markdown(f"**{match.canonical_name}**  •  {match.entity_type}  •  "
                     f"matched via {match.match_type} (score {match.match_score})")
-    else:
+    elif multi_result is None:
         st.caption(f"{method} does not resolve a specific entity - showing the top "
                     "lexically similar records for your query text.")
 
-    if not result.facts:
+    if multi_result is None and not result.facts:
         filter_desc = f" {result.relationship_filter}" if result.relationship_filter else ""
         st.warning(f"No{filter_desc} relationships were found for this query in the knowledge graph.")
         return
 
-    if result.relationship_filter_relaxed:
+    if multi_result is not None and not multi_result.facts:
+        if multi_result.intent == QueryIntent.DIRECT_RELATIONSHIP:
+            st.info("No direct source-backed relationship between the named entities was found.")
+        elif multi_result.intent == QueryIntent.AND:
+            st.info("No result entity was connected to all named entities in the graph.")
+        elif multi_result.intent == QueryIntent.OR:
+            st.info("No matching connected entities were found.")
+
+    if multi_result is None and result.relationship_filter_relaxed:
         st.info(
             f"No relationships of the expected type were found for **{match.canonical_name}**, "
             "so showing all relationship types found for it instead."
         )
 
-    if result.hops_adaptive:
+    if multi_result is None and result.hops_adaptive:
         reason = "already has enough direct connections to fill the results" if result.hops_used == 1 \
             else "has few direct connections, so 2-hop context was added"
         st.caption(f"Auto-adaptive: used {result.hops_used} hop(s) - {match.canonical_name if match else 'this entity'} {reason}.")
 
-    st.subheader("Retrieved Relationships")
-    for f in result.facts[:8]:
+    if multi_result is None:
+        st.subheader("Retrieved Relationships")
+        primary_facts = result.facts
+    else:
+        section_title = {
+            QueryIntent.DIRECT_RELATIONSHIP: "Direct facts between named entities",
+            QueryIntent.AND: "Results related to all named entities (AND)",
+            QueryIntent.OR: "Results related to any named entity (OR)",
+        }[multi_result.intent]
+        st.subheader(section_title)
+        primary_facts = multi_result.facts
+    for f in primary_facts[:8]:
         detail = f"  _(severity: {f.attributes['severity']})_" if "severity" in f.attributes else ""
         st.markdown(f"- **{f.source_name}** → [{f.relationship}] → **{f.target_name}**{detail}")
-    if len(result.facts) > 8:
-        st.caption(f"...and {len(result.facts) - 8} more (see full table below)")
+    if len(primary_facts) > 8:
+        st.caption(f"...and {len(primary_facts) - 8} more (see full table below)")
 
-    st.subheader("Knowledge Graph")
-    html = render_subgraph_html(G, result.facts, match.entity_id if match else None)
-    components.html(html, height=540, scrolling=True)
+    context_facts = multi_result.context_facts if multi_result else []
+    if context_facts:
+        st.subheader("Neighborhood context (not direct evidence between the named entities)")
+        for fact in context_facts[:8]:
+            st.markdown(
+                f"- **{fact.source_name}** → [{fact.relationship}] → **{fact.target_name}**"
+            )
+        if len(context_facts) > 8:
+            st.caption(f"...and {len(context_facts) - 8} more context facts")
+
+    displayed_facts = primary_facts + context_facts
+    if displayed_facts:
+        st.subheader("Knowledge Graph")
+        html = render_subgraph_html(
+            G,
+            displayed_facts,
+            match.entity_id if match else None,
+            {entity.entity_id for entity in multi_result.entities} if multi_result else None,
+        )
+        components.html(html, height=540, scrolling=True)
 
     st.subheader("Retrieved Evidence")
-    st.dataframe(facts_to_dataframe(result.facts), width="stretch", hide_index=True)
+    if displayed_facts:
+        st.dataframe(
+            facts_to_dataframe(displayed_facts),
+            width='stretch',
+            hide_index=True,
+        )
     if method == "BM25" or result.used_lexical_fallback:
         st.caption("Hop 0 = found via BM25 lexical match, not graph traversal.")
-    st.caption(f"Retrieved {len(result.facts)} relationships in {result.retrieval_time_ms:.1f}ms")
+    st.caption(f"Retrieved {len(displayed_facts)} relationships in {result.retrieval_time_ms:.1f}ms")
 
     if use_ollama:
         st.subheader("AI Summary")
+        if multi_result is not None and context_facts:
+            st.caption("The summary uses primary results only, not neighborhood context.")
         with st.spinner("Generating summary..."):
-            answer = generate_answer(query, result)
+            answer = generate_answer(query, multi_result or result)
         if answer.ollama_available:
             st.success(answer.summary)
         else:
