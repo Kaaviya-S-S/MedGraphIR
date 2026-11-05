@@ -65,6 +65,7 @@ python evaluation/evaluate.py
 
 ## Results
 
+<<<<<<< Updated upstream
 Measured on the full dataset, 30 test queries:
 
 | Method | Precision | Recall | F1 | Avg. time |
@@ -83,6 +84,35 @@ Python, Pandas, NetworkX, scikit-learn, Streamlit, Pydantic, Ollama
 (optional).
 
 ## Project Structure
+=======
+Retrieval was evaluated by comparing ranked results from the knowledge graph
+and BM25 against relevance judgments. We report Precision@K (P@K), Recall@20,
+Mean Average Precision (MAP@20), and Normalized Discounted Cumulative Gain
+(NDCG@10).
+
+| Query set | Method | P@5 | P@20 | Recall@20 | MAP@20 | NDCG@10 |
+|---|---|---:|---:|---:|---:|---:|
+| Single-entity (30 queries) | Graph | 0.807 | 0.573 | 0.648 | 0.865 | 0.959 |
+| Single-entity (30 queries) | BM25 | 0.780 | 0.670 | 0.690 | 0.933 | 0.798 |
+| Multi-entity (7 queries) | Graph | 0.743 | 0.436 | 0.870 | 1.000 | 1.000 |
+| Multi-entity (7 queries) | BM25 | 0.314 | 0.279 | 0.429 | 0.539 | 0.558 |
+
+Results are mixed for single-entity queries: graph retrieval ranks some
+relevant results higher, while BM25 retrieves more relevant results overall.
+Graph retrieval scores higher in the current multi-entity test, but that
+benchmark is small and its relevance labels were initially suggested from
+graph results, so the comparison may favor graph retrieval. Treat those
+multi-entity scores as preliminary.
+
+## Limitations
+
+- Interaction evidence is only a severity label (DDInter's bulk export has no mechanism text).
+- Disease coverage is limited to the 97 diseases in PharmacotherapyDB.
+- Entity linking is name-based, not a full ontology linker (e.g. brand names may not resolve).
+- Multi-entity intent detection uses simple wording rules; unclear queries are reported as ambiguous rather than interpreted freely.
+
+## Project structure
+>>>>>>> Stashed changes
 
 ```
 ├── data/               Raw data, processed tables, saved graph
