@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pandas as pd
 
 from src import config
-from src.graph_builder import load_graph
+from src.graph_pipeline import load_graph
 
 # (query text, entity_id or None, relationship type or "ANY" or None)
 # entity_id=None marks a negative test case (entity should not be found).

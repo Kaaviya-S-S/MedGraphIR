@@ -1,108 +1,95 @@
 # 🧬 Medical Knowledge Graph-Based Information Retrieval System
 
-MedGraphIR models drug-drug interactions and drug-disease relationships as a graph, then answers
-natural-language queries by matching an entity and retrieving its 1-2 hop neighborhood — not by 
-asking a language model to recall facts from memory.
+MedGraphIR models drug-drug interactions and drug-disease relationships as a knowledge graph and answers natural-language queries by matching an entity and retrieving its 1-2 hop neighborhood. Facts are retrieved from the data, not recalled by a language model.
 
-Retrieval happens over a real knowledge graph built from **DDInter 2.0**
-(~222k drug-drug interactions) and **PharmacotherapyDB** (physician-curated
-drug-disease indications), compared against a traditional TF-IDF baseline
-and a hybrid method, with results measured on a 30-query evaluation set —
-not assumed.
+This is not a diagnosis tool. It retrieves and summarizes existing, sourced relationships. See Medical Safety below.
 
-> **This is not a diagnosis tool.** It retrieves and summarizes existing,
-> sourced relationships. See [Medical Safety](#medical-safety) below.
+## Objective and outcome
 
-## Architecture
+**Objective:** make it easier to find sourced drug-interaction and drug-disease facts by searching in everyday language.
+
+**Outcome:** the system matches the query to a drug or disease, retrieves its connected facts, and shows their source evidence. If it cannot match an entity, it can use BM25 keyword search. An optional local model can summarize retrieved facts, but it does not supply medical facts.
+
+## How it works
 
 ```mermaid
 flowchart TD
-    A[DDInter 2.0 + PharmacotherapyDB] --> B[Preprocessing]
-    B --> C[Entity Extraction / Normalization]
-    C --> D[Relation Extraction]
-    D --> E[NetworkX Knowledge Graph]
-    E --> F[Query Processing]
-    F --> G[Entity Matching]
-    G --> H[1-2 Hop Graph Retrieval]
-    H --> I[Relevant Facts + Source Provenance]
-    I --> J[Optional Ollama Summary]
-    I --> K[Streamlit UI]
-    J --> K
+    A[DDInter 2.0 + PharmacotherapyDB] --> B[Preprocessing + Entity Linking]
+    B --> C[NetworkX Knowledge Graph]
+    C --> D[Query Processing + Entity Matching]
+    D --> E[1-2 Hop Graph Retrieval]
+    D -. no entity found .-> F[BM25 Fallback]
+    E --> G[Facts + Source Provenance]
+    F --> G
+    G --> H[Optional Ollama Summary]
+    G --> I[Streamlit UI]
+    H --> I
 ```
 
-The knowledge graph is built **offline** by a standalone script; the
-Streamlit app only ever loads and queries the saved graph, never rebuilds
-it per request.
+The graph is built once, offline (`build_graph.py`). The app only loads and queries it.
 
 ## Features
 
-- **Graph-based retrieval** — tiered entity matching (exact / substring /
-  partial / fuzzy) with auto-adaptive 1-2 hop traversal
-- **TF-IDF keyword baseline** and a **hybrid (TF-IDF + graph)** method for
-  comparison
-- **Measured evaluation**, not assumed — Precision/Recall/F1/P@K over a
-  30-query, graph-derived ground-truth set
-- **Optional local LLM summary** (Ollama) grounded only in retrieved facts
-  — never invents medical information
-- **Streamlit UI** with Search, Evaluation, and About pages
+- **Graph retrieval:** tiered entity matching (exact, substring, partial, fuzzy) with adaptive 1-2 hop traversal, ranked by hop distance and severity/curator support.
+- **Multi-entity retrieval:** rule-based intent detection supports direct relationships, shared results (AND), and combined results (OR) for multiple named drugs/diseases. Optional neighborhood context is off by default and kept separate from answer evidence.
+- **BM25 fallback:** if no entity matches, the query falls back to lexical search. Each result comes from one method, with no score blending.
+- **BM25 baseline** for comparison.
+- **Optional local LLM summary** (Ollama), using only the primary retrieved facts for single- and multi-entity queries.
+- **Streamlit UI** with Search, Evaluation and About pages.
 
-## Quick Start
+## Quick start
 
 ```bash
 pip install -r requirements.txt
-
-python build_graph.py        # build the knowledge graph once (~25s)
-streamlit run app.py         # launch the UI
+python build_graph.py     # build the graph once (~25s)
+streamlit run app.py      # launch the UI
 ```
 
-Try a query: *"What drugs interact with Warfarin?"*
+Try: *"What drugs interact with Warfarin?"*
 
-To reproduce the evaluation numbers:
+Multi-entity examples:
 
-```bash
-python evaluation/evaluate.py
-```
+- *"Does Warfarin interact with Acetylsalicylic acid?"* — direct relationship lookup.
+- *"Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?"* — shared results (AND).
+- *"Which diseases does Acetaminophen or Acetylsalicylic acid treat?"* — combined results (OR).
 
-## Results
+## Evaluation
 
-<<<<<<< Updated upstream
-Measured on the full dataset, 30 test queries:
+Two evaluations, with different strengths:
+
+**1. Graph-derived benchmark** (`python evaluation/evaluate.py`): compares results with direct neighbors in the same graph. It checks retrieval behavior but is not independent ground truth, so it favors graph retrieval by construction.
 
 | Method | Precision | Recall | F1 | Avg. time |
 |---|---|---|---|---|
-| **Graph retrieval** | 1.000 | 0.699 | 0.717 | 2.1ms |
-| Hybrid (TF-IDF + Graph) | 0.696 | 0.598 | 0.438 | 30.4ms |
-| TF-IDF baseline | 0.586 | 0.465 | 0.348 | 26.9ms |
+| Graph retrieval | 1.000 | 0.699 | 0.717 | 2.0ms |
+| BM25 baseline | 0.594 | 0.465 | 0.359 | 2.6ms |
 
-Graph retrieval wins on both accuracy and speed. Hybrid never beats pure
-graph on this dataset (0/30 query wins) — reported honestly, not assumed
-away; see the documentation for why.
+**2. Pooled relevance judgments** (30 queries, top 20 from each method):
 
-## Tech Stack
+```bash
+python evaluation/build_judgment_pool.py
+python evaluation/draft_judgments.py      # rule-based suggested grades
+python evaluation/evaluate_judgments.py
+```
 
-Python, Pandas, NetworkX, scikit-learn, Streamlit, Pydantic, Ollama
-(optional).
+Candidates are shuffled per query and method/rank is hidden to reduce bias. Grades start as rule-based suggestions and should be checked by hand before the numbers are cited. Recall is relative to the relevant records found in this pool, not the full corpus.
 
-## Project Structure
-=======
-Retrieval was evaluated by comparing ranked results from the knowledge graph
-and BM25 against relevance judgments. We report Precision@K (P@K), Recall@20,
-Mean Average Precision (MAP@20), and Normalized Discounted Cumulative Gain
-(NDCG@10).
+| Method | P@5 | P@20 | Recall@20 | MAP@20 | NDCG@10 |
+|---|---|---|---|---|---|
+| Graph retrieval | 0.807 | 0.573 | 0.648 | 0.865 | 0.959 |
+| BM25 baseline | 0.780 | 0.670 | 0.690 | 0.933 | 0.798 |
 
-| Query set | Method | P@5 | P@20 | Recall@20 | MAP@20 | NDCG@10 |
-|---|---|---:|---:|---:|---:|---:|
-| Single-entity (30 queries) | Graph | 0.807 | 0.573 | 0.648 | 0.865 | 0.959 |
-| Single-entity (30 queries) | BM25 | 0.780 | 0.670 | 0.690 | 0.933 | 0.798 |
-| Multi-entity (7 queries) | Graph | 0.743 | 0.436 | 0.870 | 1.000 | 1.000 |
-| Multi-entity (7 queries) | BM25 | 0.314 | 0.279 | 0.429 | 0.539 | 0.558 |
+The two methods are close and neither dominates. BM25 leads on MAP@20 and Recall@20, and graph leads on NDCG and P@5. Graph returns fewer than 20 results for some queries, which lowers its P@20.
 
-Results are mixed for single-entity queries: graph retrieval ranks some
-relevant results higher, while BM25 retrieves more relevant results overall.
-Graph retrieval scores higher in the current multi-entity test, but that
-benchmark is small and its relevance labels were initially suggested from
-graph results, so the comparison may favor graph retrieval. Treat those
-multi-entity scores as preliminary.
+**3. Multi-entity evaluation:** separate, manually judged benchmark for direct, AND, and OR queries:
+
+```bash
+python evaluation/build_multi_entity_judgment_pool.py
+# Manually grade each candidate (0/1/2) and set human_reviewed=yes
+python evaluation/evaluate_multi_entity_judgments.py
+```
+
+No multi-entity scores are reported until all pooled candidates have been manually reviewed.
 
 ## Limitations
 
@@ -112,28 +99,25 @@ multi-entity scores as preliminary.
 - Multi-entity intent detection uses simple wording rules; unclear queries are reported as ambiguous rather than interpreted freely.
 
 ## Project structure
->>>>>>> Stashed changes
 
 ```
-├── data/               Raw data, processed tables, saved graph
-├── src/                Pipeline modules (preprocessing, entity linking,
-│                       relation extraction, graph, retrieval, hybrid,
-│                       keyword baseline, Ollama summarization)
-├── evaluation/          Test queries, ground truth, evaluation script
-├── build_graph.py       Standalone graph-build script
-├── app.py               Streamlit UI
-└── DOCUMENTATION.md      Full technical write-up
+├── data/          Raw data, processed tables, saved graph
+├── src/           Data and graph pipelines, retrieval, BM25, optional summary
+├── evaluation/    Graph-derived and judgment-based evaluation
+├── build_graph.py Standalone graph builder
+├── app.py         Streamlit UI
+└── DOCUMENTATION.md  Full technical write-up
 ```
 
-## Data Sources
+## Data sources
 
-- **[DDInter 2.0](https://ddinter2.scbdd.com/)** — drug-drug interactions,
-  severity-labeled
-- **[PharmacotherapyDB 1.0](https://github.com/dhimmel/indications)** —
-  physician-curated drug-disease indications
+- [DDInter 2.0](https://ddinter2.scbdd.com/): severity-labeled drug-drug interactions (~222k)
+- [PharmacotherapyDB 1.0](https://github.com/dhimmel/indications): physician-curated drug-disease indications
+
+## Tech stack
+
+Python, Pandas, NetworkX, scikit-learn, Streamlit, Pydantic, Ollama (optional).
 
 ## Medical Safety
 
-This system is an **academic information retrieval prototype**. Retrieved
-information should not be used as a substitute for professional medical
-advice.
+This is an academic information retrieval prototype. Retrieved information is not a substitute for professional medical advice.

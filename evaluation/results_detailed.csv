@@ -1,91 +1,61 @@
 query,method,precision,recall,f1,n_retrieved,n_expected,retrieval_time_ms,precision_at_5,precision_at_10
-What drugs interact with Warfarin?,graph,1.0,0.023148148148148147,0.04524886877828054,20,864,6.1221999931149185,1.0,1.0
-What drugs interact with Warfarin?,keyword,1.0,0.023148148148148147,0.04524886877828054,20,864,27.654299992718734,1.0,1.0
-What drugs interact with Warfarin?,hybrid,1.0,0.023148148148148147,0.04524886877828054,20,864,35.063600007561035,1.0,1.0
-What drugs interact with Dexamethasone?,graph,1.0,0.02197802197802198,0.043010752688172046,20,910,5.179499989026226,1.0,1.0
-What drugs interact with Dexamethasone?,keyword,1.0,0.02197802197802198,0.043010752688172046,20,910,27.235899993684143,1.0,1.0
-What drugs interact with Dexamethasone?,hybrid,1.0,0.02197802197802198,0.043010752688172046,20,910,34.679899996262975,1.0,1.0
-What drugs interact with Clarithromycin?,graph,1.0,0.024330900243309004,0.04750593824228029,20,822,4.638500002329238,1.0,1.0
-What drugs interact with Clarithromycin?,keyword,1.0,0.024330900243309004,0.04750593824228029,20,822,26.86800000083167,1.0,1.0
-What drugs interact with Clarithromycin?,hybrid,1.0,0.024330900243309004,0.04750593824228029,20,822,34.52260000631213,1.0,1.0
-What drugs interact with Tacrolimus?,graph,1.0,0.023094688221709007,0.04514672686230249,20,866,4.864699993049726,1.0,1.0
-What drugs interact with Tacrolimus?,keyword,1.0,0.023094688221709007,0.04514672686230249,20,866,27.212900007725693,1.0,1.0
-What drugs interact with Tacrolimus?,hybrid,1.0,0.023094688221709007,0.04514672686230249,20,866,35.09759998996742,1.0,1.0
-What drugs interact with Methotrexate?,graph,1.0,0.02560819462227913,0.04993757802746567,20,781,4.296099999919534,1.0,1.0
-What drugs interact with Methotrexate?,keyword,1.0,0.02560819462227913,0.04993757802746567,20,781,28.414900007192045,1.0,1.0
-What drugs interact with Methotrexate?,hybrid,1.0,0.02560819462227913,0.04993757802746567,20,781,34.39760000037495,1.0,1.0
-What drugs interact with Doripenem?,graph,1.0,1.0,1.0,4,4,0.14609999198000878,1.0,1.0
-What drugs interact with Doripenem?,keyword,1.0,1.0,1.0,4,4,27.275800006464124,1.0,1.0
-What drugs interact with Doripenem?,hybrid,1.0,1.0,1.0,4,4,28.209800002514385,1.0,1.0
-What drugs interact with Agalsidase beta?,graph,1.0,1.0,1.0,4,4,0.14400000509340316,1.0,1.0
-What drugs interact with Agalsidase beta?,keyword,0.19047619047619047,1.0,0.32,21,4,28.538800004753284,0.8,0.4
-What drugs interact with Agalsidase beta?,hybrid,0.19047619047619047,1.0,0.32,21,4,29.922200003056787,0.8,0.4
-What drugs interact with Ferumoxides?,graph,1.0,1.0,1.0,4,4,0.20670000230893493,1.0,1.0
-What drugs interact with Ferumoxides?,keyword,1.0,1.0,1.0,4,4,26.88369998941198,1.0,1.0
-What drugs interact with Ferumoxides?,hybrid,1.0,1.0,1.0,4,4,28.066600003512576,1.0,1.0
-What drugs interact with Cedazuridine?,graph,1.0,1.0,1.0,4,4,0.20419999782461673,1.0,1.0
-What drugs interact with Cedazuridine?,keyword,1.0,1.0,1.0,4,4,26.97349998925347,1.0,1.0
-What drugs interact with Cedazuridine?,hybrid,1.0,1.0,1.0,4,4,27.136599994264543,1.0,1.0
-What drugs interact with Bismuth subcitrate potassium?,graph,1.0,1.0,1.0,4,4,0.25260000256821513,1.0,1.0
-What drugs interact with Bismuth subcitrate potassium?,keyword,0.19047619047619047,1.0,0.32,21,4,27.818300004582852,0.8,0.4
-What drugs interact with Bismuth subcitrate potassium?,hybrid,0.19047619047619047,1.0,0.32,21,4,29.675900004804134,0.8,0.4
-What diseases does Metformin treat?,graph,1.0,1.0,1.0,3,3,0.4195000074105337,1.0,1.0
-What diseases does Metformin treat?,keyword,0.0,0.0,0.0,20,3,27.16740001051221,0.0,0.0
-What diseases does Metformin treat?,hybrid,0.05,0.3333333333333333,0.08695652173913045,20,3,29.236599992145784,0.2,0.1
-What diseases does Methotrexate treat?,graph,1.0,1.0,1.0,19,19,0.6110000103944913,1.0,1.0
-What diseases does Methotrexate treat?,keyword,0.0,0.0,0.0,20,19,26.931500004138798,0.0,0.0
-What diseases does Methotrexate treat?,hybrid,0.4,0.42105263157894735,0.41025641025641024,20,19,30.866100001730956,0.8,0.8
-What diseases does Prednisone treat?,graph,1.0,1.0,1.0,17,17,0.5506000015884638,1.0,1.0
-What diseases does Prednisone treat?,keyword,0.0,0.0,0.0,20,17,27.41260000038892,0.0,0.0
-What diseases does Prednisone treat?,hybrid,0.4,0.47058823529411764,0.4324324324324324,20,17,29.770399996777996,0.6,0.3
-What diseases does Acetylsalicylic acid treat?,graph,1.0,1.0,1.0,7,7,0.5185999907553196,1.0,1.0
-What diseases does Acetylsalicylic acid treat?,keyword,0.0,0.0,0.0,20,7,27.562000002944842,0.0,0.0
-What diseases does Acetylsalicylic acid treat?,hybrid,0.2,0.5714285714285714,0.29629629629629634,20,7,30.200599998352118,0.4,0.2
-What diseases does Omeprazole treat?,graph,1.0,1.0,1.0,5,5,0.37880000309087336,1.0,1.0
-What diseases does Omeprazole treat?,keyword,0.0,0.0,0.0,20,5,27.45719999074936,0.0,0.0
-What diseases does Omeprazole treat?,hybrid,0.1,0.4,0.16000000000000003,20,5,28.96030001284089,0.4,0.2
-What diseases does Cyclosporine treat?,graph,1.0,1.0,1.0,4,4,0.4856000014115125,1.0,1.0
-What diseases does Cyclosporine treat?,keyword,0.0,0.0,0.0,20,4,27.784099991549738,0.0,0.0
-What diseases does Cyclosporine treat?,hybrid,0.15,0.75,0.24999999999999997,20,4,29.905999996117316,0.6,0.3
-What drugs treat hypertension?,graph,1.0,0.2857142857142857,0.4444444444444445,20,70,0.6215000030351803,1.0,1.0
-What drugs treat hypertension?,keyword,1.0,0.2857142857142857,0.4444444444444445,20,70,27.638600004138425,1.0,1.0
-What drugs treat hypertension?,hybrid,1.0,0.2857142857142857,0.4444444444444445,20,70,30.49960000498686,1.0,1.0
-What drugs treat asthma?,graph,1.0,0.5,0.6666666666666666,20,40,0.3924999909941107,1.0,1.0
-What drugs treat asthma?,keyword,1.0,0.5,0.6666666666666666,20,40,27.72890000778716,1.0,1.0
-What drugs treat asthma?,hybrid,1.0,0.5,0.6666666666666666,20,40,28.834700002335012,1.0,1.0
-What drugs treat Kawasaki disease?,graph,1.0,1.0,1.0,1,1,0.17690000822767615,1.0,1.0
-What drugs treat Kawasaki disease?,keyword,0.041666666666666664,1.0,0.07999999999999999,24,1,26.96089999517426,0.2,0.1
-What drugs treat Kawasaki disease?,hybrid,0.041666666666666664,1.0,0.07999999999999999,24,1,29.274100001202896,0.2,0.1
-What drugs treat gestational diabetes?,graph,1.0,1.0,1.0,1,1,0.1812999980757013,1.0,1.0
-What drugs treat gestational diabetes?,keyword,0.05,1.0,0.09523809523809523,20,1,27.13620000577066,0.2,0.1
-What drugs treat gestational diabetes?,hybrid,0.05,1.0,0.09523809523809523,20,1,29.214199996204115,0.2,0.1
-What drugs treat Barrett's esophagus?,graph,1.0,1.0,1.0,2,2,0.12700000661425292,1.0,1.0
-What drugs treat Barrett's esophagus?,keyword,1.0,1.0,1.0,2,2,26.790800009621307,1.0,1.0
-What drugs treat Barrett's esophagus?,hybrid,1.0,1.0,1.0,2,2,27.036200001020916,1.0,1.0
-What drugs treat nephrolithiasis?,graph,1.0,1.0,1.0,1,1,0.17899999511428177,1.0,1.0
-What drugs treat nephrolithiasis?,keyword,1.0,1.0,1.0,1,1,26.453700003912672,1.0,1.0
-What drugs treat nephrolithiasis?,hybrid,1.0,1.0,1.0,1,1,27.337299994542263,1.0,1.0
-What drugs treat amyotrophic lateral sclerosis?,graph,1.0,1.0,1.0,2,2,0.1936999906320125,1.0,1.0
-What drugs treat amyotrophic lateral sclerosis?,keyword,0.1,1.0,0.18181818181818182,20,2,27.40159998938907,0.4,0.2
-What drugs treat amyotrophic lateral sclerosis?,hybrid,0.1,1.0,0.18181818181818182,20,2,28.536300000268966,0.4,0.2
-What drugs treat malignant glioma?,graph,1.0,1.0,1.0,2,2,0.19339998834766448,1.0,1.0
-What drugs treat malignant glioma?,keyword,1.0,1.0,1.0,2,2,26.975900007528253,1.0,1.0
-What drugs treat malignant glioma?,hybrid,1.0,1.0,1.0,2,2,27.270999999018386,1.0,1.0
-Tell me about Metformin,graph,1.0,0.031007751937984496,0.06015037593984962,20,645,4.832600010558963,1.0,1.0
-Tell me about Metformin,keyword,1.0,0.031007751937984496,0.06015037593984962,20,645,27.753000002121553,1.0,1.0
-Tell me about Metformin,hybrid,1.0,0.031007751937984496,0.06015037593984962,20,645,34.337500008405186,1.0,1.0
-Show connections for Cyclosporine,graph,1.0,0.024390243902439025,0.047619047619047616,20,820,4.380899990792386,1.0,1.0
-Show connections for Cyclosporine,keyword,1.0,0.024390243902439025,0.047619047619047616,20,820,27.78089999628719,1.0,1.0
-Show connections for Cyclosporine,hybrid,1.0,0.024390243902439025,0.047619047619047616,20,820,33.79279999353457,1.0,1.0
-What drugs interact with Worfarin?,graph,1.0,0.023148148148148147,0.04524886877828054,20,864,9.1480999981286,1.0,1.0
-What drugs interact with Worfarin?,keyword,0.0,0.0,0.0,0,864,23.934199998620898,0.0,0.0
-What drugs interact with Worfarin?,hybrid,1.0,0.023148148148148147,0.04524886877828054,20,864,34.33029999723658,1.0,1.0
-What diseases does Metfromin treat?,graph,1.0,1.0,1.0,3,3,5.0866999954450876,1.0,1.0
-What diseases does Metfromin treat?,keyword,0.0,0.0,0.0,0,3,24.369899998418987,0.0,0.0
-What diseases does Metfromin treat?,hybrid,1.0,1.0,1.0,3,3,28.88340000936296,1.0,1.0
-xyzabc123,graph,1.0,1.0,1.0,0,0,4.444599995622411,1.0,1.0
-xyzabc123,keyword,1.0,1.0,1.0,0,0,23.861499998020008,1.0,1.0
-xyzabc123,hybrid,1.0,1.0,1.0,0,0,27.649099996779114,1.0,1.0
-What drugs interact with Zzznonexistentdrug?,graph,1.0,1.0,1.0,0,0,5.068300000857562,1.0,1.0
-What drugs interact with Zzznonexistentdrug?,keyword,1.0,1.0,1.0,0,0,23.989400011487305,1.0,1.0
-What drugs interact with Zzznonexistentdrug?,hybrid,1.0,1.0,1.0,0,0,28.56410000822507,1.0,1.0
+What drugs interact with Warfarin?,graph,1.0,0.023148148148148147,0.04524886877828054,20,864,5.833600007463247,1.0,1.0
+What drugs interact with Warfarin?,bm25,1.0,0.023148148148148147,0.04524886877828054,20,864,3.8578000385314226,1.0,1.0
+What drugs interact with Dexamethasone?,graph,1.0,0.02197802197802198,0.043010752688172046,20,910,4.755400004796684,1.0,1.0
+What drugs interact with Dexamethasone?,bm25,1.0,0.02197802197802198,0.043010752688172046,20,910,4.243000003043562,1.0,1.0
+What drugs interact with Clarithromycin?,graph,1.0,0.024330900243309004,0.04750593824228029,20,822,4.735599970445037,1.0,1.0
+What drugs interact with Clarithromycin?,bm25,1.0,0.024330900243309004,0.04750593824228029,20,822,3.4985000384040177,1.0,1.0
+What drugs interact with Tacrolimus?,graph,1.0,0.023094688221709007,0.04514672686230249,20,866,4.459100018721074,1.0,1.0
+What drugs interact with Tacrolimus?,bm25,1.0,0.023094688221709007,0.04514672686230249,20,866,4.046800022479147,1.0,1.0
+What drugs interact with Methotrexate?,graph,1.0,0.02560819462227913,0.04993757802746567,20,781,4.1541000246070325,1.0,1.0
+What drugs interact with Methotrexate?,bm25,1.0,0.02560819462227913,0.04993757802746567,20,781,3.597599978093058,1.0,1.0
+What drugs interact with Doripenem?,graph,1.0,1.0,1.0,4,4,0.1181000261567533,1.0,1.0
+What drugs interact with Doripenem?,bm25,1.0,1.0,1.0,4,4,0.6012999801896513,1.0,1.0
+What drugs interact with Agalsidase beta?,graph,1.0,1.0,1.0,4,4,0.10189996100962162,1.0,1.0
+What drugs interact with Agalsidase beta?,bm25,0.3076923076923077,1.0,0.47058823529411764,13,4,3.7859000149182975,0.8,0.4
+What drugs interact with Ferumoxides?,graph,1.0,1.0,1.0,4,4,0.1642999704927206,1.0,1.0
+What drugs interact with Ferumoxides?,bm25,1.0,1.0,1.0,4,4,0.6641999934799969,1.0,1.0
+What drugs interact with Cedazuridine?,graph,1.0,1.0,1.0,4,4,0.12740003876388073,1.0,1.0
+What drugs interact with Cedazuridine?,bm25,1.0,1.0,1.0,4,4,0.6192000000737607,1.0,1.0
+What drugs interact with Bismuth subcitrate potassium?,graph,1.0,1.0,1.0,4,4,0.11189997894689441,1.0,1.0
+What drugs interact with Bismuth subcitrate potassium?,bm25,0.3333333333333333,1.0,0.5,12,4,4.070200026035309,0.8,0.4
+What diseases does Metformin treat?,graph,1.0,1.0,1.0,3,3,0.29230001382529736,1.0,1.0
+What diseases does Metformin treat?,bm25,0.0,0.0,0.0,20,3,3.330299980007112,0.0,0.0
+What diseases does Methotrexate treat?,graph,1.0,1.0,1.0,19,19,0.4103000392206013,1.0,1.0
+What diseases does Methotrexate treat?,bm25,0.0,0.0,0.0,20,19,3.4059000317938626,0.0,0.0
+What diseases does Prednisone treat?,graph,1.0,1.0,1.0,17,17,0.40220003575086594,1.0,1.0
+What diseases does Prednisone treat?,bm25,0.0,0.0,0.0,20,17,3.9747999981045723,0.0,0.0
+What diseases does Acetylsalicylic acid treat?,graph,1.0,1.0,1.0,7,7,0.4496000474318862,1.0,1.0
+What diseases does Acetylsalicylic acid treat?,bm25,0.0,0.0,0.0,20,7,8.55039997259155,0.0,0.0
+What diseases does Omeprazole treat?,graph,1.0,1.0,1.0,5,5,0.2948999754153192,1.0,1.0
+What diseases does Omeprazole treat?,bm25,0.0,0.0,0.0,20,5,3.327300015371293,0.0,0.0
+What diseases does Cyclosporine treat?,graph,1.0,1.0,1.0,4,4,0.34660001983866096,1.0,1.0
+What diseases does Cyclosporine treat?,bm25,0.0,0.0,0.0,20,4,3.947799967136234,0.0,0.0
+What drugs treat hypertension?,graph,1.0,0.2857142857142857,0.4444444444444445,20,70,0.5559000419452786,1.0,1.0
+What drugs treat hypertension?,bm25,1.0,0.2857142857142857,0.4444444444444445,20,70,2.9363000066950917,1.0,1.0
+What drugs treat asthma?,graph,1.0,0.5,0.6666666666666666,20,40,0.31259999377653,1.0,1.0
+What drugs treat asthma?,bm25,1.0,0.5,0.6666666666666666,20,40,2.780799986794591,1.0,1.0
+What drugs treat Kawasaki disease?,graph,1.0,1.0,1.0,1,1,0.08150003850460052,1.0,1.0
+What drugs treat Kawasaki disease?,bm25,0.04,1.0,0.07692307692307693,25,1,3.555400006007403,0.2,0.1
+What drugs treat gestational diabetes?,graph,1.0,1.0,1.0,1,1,0.08179998258128762,1.0,1.0
+What drugs treat gestational diabetes?,bm25,0.05,1.0,0.09523809523809523,20,1,3.0935999820940197,0.2,0.1
+What drugs treat Barrett's esophagus?,graph,1.0,1.0,1.0,2,2,0.13150001177564263,1.0,1.0
+What drugs treat Barrett's esophagus?,bm25,1.0,1.0,1.0,2,2,0.35470002330839634,1.0,1.0
+What drugs treat nephrolithiasis?,graph,1.0,1.0,1.0,1,1,0.08859997615218163,1.0,1.0
+What drugs treat nephrolithiasis?,bm25,1.0,1.0,1.0,1,1,0.2148000057786703,1.0,1.0
+What drugs treat amyotrophic lateral sclerosis?,graph,1.0,1.0,1.0,2,2,0.0955999712459743,1.0,1.0
+What drugs treat amyotrophic lateral sclerosis?,bm25,0.09523809523809523,1.0,0.17391304347826084,21,2,2.9429999995045364,0.4,0.2
+What drugs treat malignant glioma?,graph,1.0,1.0,1.0,2,2,0.09680003859102726,1.0,1.0
+What drugs treat malignant glioma?,bm25,1.0,1.0,1.0,2,2,0.32700004521757364,1.0,1.0
+Tell me about Metformin,graph,1.0,0.031007751937984496,0.06015037593984962,20,645,3.50689998595044,1.0,1.0
+Tell me about Metformin,bm25,1.0,0.031007751937984496,0.06015037593984962,20,645,3.3048000186681747,1.0,1.0
+Show connections for Cyclosporine,graph,1.0,0.024390243902439025,0.047619047619047616,20,820,4.498100024648011,1.0,1.0
+Show connections for Cyclosporine,bm25,1.0,0.024390243902439025,0.047619047619047616,20,820,3.9033000357449055,1.0,1.0
+What drugs interact with Worfarin?,graph,1.0,0.023148148148148147,0.04524886877828054,20,864,8.884199953172356,1.0,1.0
+What drugs interact with Worfarin?,bm25,0.0,0.0,0.0,0,864,0.011699972674250603,0.0,0.0
+What diseases does Metfromin treat?,graph,1.0,1.0,1.0,3,3,5.446399969514459,1.0,1.0
+What diseases does Metfromin treat?,bm25,0.0,0.0,0.0,0,3,0.016900012269616127,0.0,0.0
+xyzabc123,graph,1.0,1.0,1.0,0,0,4.695100011304021,1.0,1.0
+xyzabc123,bm25,1.0,1.0,1.0,0,0,0.008700008038431406,1.0,1.0
+What drugs interact with Zzznonexistentdrug?,graph,1.0,1.0,1.0,0,0,4.495500004850328,1.0,1.0
+What drugs interact with Zzznonexistentdrug?,bm25,1.0,1.0,1.0,0,0,0.010500021744519472,1.0,1.0

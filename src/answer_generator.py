@@ -25,7 +25,7 @@ matching alone.
 from pydantic import BaseModel
 
 from src import config
-from src.retrieval import RetrievalResult
+from src.retrieval import MultiEntityRetrievalResult, RetrievalResult
 
 
 class AnswerResult(BaseModel):
@@ -79,12 +79,43 @@ Write a concise summary answering the user's question using ONLY the facts above
 """
 
 
+def build_multi_entity_prompt(query: str, result: MultiEntityRetrievalResult) -> str:
+    """Summarize only primary multi-entity facts, never optional context."""
+    entities = ", ".join(entity.canonical_name for entity in result.entities)
+    intent_instructions = {
+        "direct_relationship": "Report only direct relationships between the named entities.",
+        "and": "Identify shared results supported by facts connecting them to every named entity.",
+        "or": "Summarize results supported by a fact connecting them to at least one named entity.",
+    }.get(result.intent.value, "Describe only what the listed facts establish.")
+    facts = "\n".join(
+        f"{i}. {fact.source_name} --[{fact.relationship}]--> {fact.target_name} "
+        f"(evidence: {fact.evidence})"
+        for i, fact in enumerate(result.facts, 1)
+    )
+    return f"""{_SYSTEM_INSTRUCTIONS}
+User question: "{query}"
+Named entities: {entities}
+Query intent: {result.intent.value}
+Interpretation: {intent_instructions}
+
+Retrieved primary facts:
+{facts}
+
+Answer concisely using ONLY these primary facts. Do not include optional neighborhood context.
+For AND questions, distinguish a shared result from the individual supporting facts.
+"""
+
+
 def _contains_prescriptive_language(text: str) -> bool:
     lowered = text.lower()
     return any(phrase in lowered for phrase in _PRESCRIPTIVE_PHRASES)
 
 
-def generate_answer(query: str, result: RetrievalResult, model: str = config.OLLAMA_MODEL) -> AnswerResult:
+def generate_answer(
+    query: str,
+    result: RetrievalResult | MultiEntityRetrievalResult,
+    model: str = config.OLLAMA_MODEL,
+) -> AnswerResult:
     """Summarize `result` with Ollama. Never raises: any failure (Ollama
     package missing, service not running, model not pulled, empty
     response) degrades to `ollama_available=False` with an explanatory
@@ -107,7 +138,11 @@ def generate_answer(query: str, result: RetrievalResult, model: str = config.OLL
             note="Ollama is not installed; showing retrieved facts only.",
         )
 
-    prompt = build_prompt(query, result)
+    prompt = (
+        build_multi_entity_prompt(query, result)
+        if isinstance(result, MultiEntityRetrievalResult)
+        else build_prompt(query, result)
+    )
     try:
         response = ollama.generate(model=model, prompt=prompt)
         summary = response["response"].strip()

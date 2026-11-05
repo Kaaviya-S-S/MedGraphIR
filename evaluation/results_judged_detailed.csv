@@ -1,0 +1,61 @@
+query,method,n_judged_relevant,precision_at_5,precision_at_10,precision_at_20,recall_at_20,map_at_20,ndcg_at_5,ndcg_at_10
+Find medicines that interact with Warfarin.,graph,38,1.0,1.0,1.0,0.5263157894736842,1.0,1.0,1.0
+Find medicines that interact with Warfarin.,bm25,38,1.0,1.0,1.0,0.5263157894736842,1.0,1.0,1.0
+What are the documented interaction partners of Warfarin?,graph,38,1.0,1.0,1.0,0.5263157894736842,1.0,1.0,1.0
+What are the documented interaction partners of Warfarin?,bm25,38,1.0,1.0,1.0,0.5263157894736842,1.0,1.0,1.0
+Which medications have reported interactions with Tacrolimus?,graph,39,1.0,1.0,1.0,0.5128205128205128,1.0,1.0,1.0
+Which medications have reported interactions with Tacrolimus?,bm25,39,1.0,1.0,1.0,0.5128205128205128,1.0,1.0,1.0
+List drugs known to interact with Clarithromycin.,graph,38,1.0,1.0,1.0,0.5263157894736842,1.0,1.0,1.0
+List drugs known to interact with Clarithromycin.,bm25,38,1.0,1.0,1.0,0.5263157894736842,1.0,1.0,1.0
+What interactions are recorded for Dexamethasone?,graph,40,1.0,1.0,1.0,0.5,1.0,1.0,1.0
+What interactions are recorded for Dexamethasone?,bm25,40,1.0,1.0,1.0,0.5,1.0,1.0,1.0
+Find reported interaction partners for Doripenem.,graph,4,0.8,0.4,0.2,1.0,1.0,1.0,1.0
+Find reported interaction partners for Doripenem.,bm25,4,0.8,0.4,0.2,1.0,1.0,1.0,1.0
+Are there any records about interactions with Ferumoxides?,graph,4,0.8,0.4,0.2,1.0,1.0,1.0,1.0
+Are there any records about interactions with Ferumoxides?,bm25,4,0.8,0.4,0.2,1.0,1.0,1.0,1.0
+Which medicines are listed as interacting with Bismuth subcitrate potassium?,graph,4,0.8,0.4,0.2,1.0,1.0,1.0,1.0
+Which medicines are listed as interacting with Bismuth subcitrate potassium?,bm25,4,0.8,0.4,0.2,1.0,1.0,1.0,1.0
+What diseases are listed for Metformin?,graph,23,0.6,0.3,0.15,0.13043478260869565,0.15,0.8866167491742403,0.7260062664908333
+What diseases are listed for Metformin?,bm25,23,1.0,1.0,1.0,0.8695652173913043,1.0,0.40892216721717317,0.5159958223394445
+What is Metformin used for according to the records?,graph,23,0.6,0.3,0.15,0.13043478260869565,0.15,0.8866167491742403,0.7260062664908333
+What is Metformin used for according to the records?,bm25,23,1.0,1.0,1.0,0.8695652173913043,1.0,0.40892216721717317,0.5159958223394445
+Find diseases linked to Methotrexate.,graph,39,1.0,1.0,0.95,0.48717948717948717,0.95,1.0,1.0
+Find diseases linked to Methotrexate.,bm25,39,1.0,1.0,1.0,0.5128205128205128,1.0,0.33333333333333337,0.33333333333333337
+Which conditions does Prednisone treat?,graph,37,1.0,1.0,0.85,0.4594594594594595,0.85,1.0,1.0
+Which conditions does Prednisone treat?,bm25,37,1.0,1.0,1.0,0.5405405405405406,1.0,0.33333333333333337,0.33333333333333337
+Are there indications for Omeprazole?,graph,25,1.0,0.5,0.25,0.2,0.25,1.0,0.8472196115914239
+Are there indications for Omeprazole?,bm25,25,1.0,1.0,1.0,0.8,1.0,0.33333333333333337,0.4351869256057174
+Tell me about the recorded relationships for Cyclosporine.,graph,37,1.0,1.0,1.0,0.5405405405405406,1.0,1.0,1.0
+Tell me about the recorded relationships for Cyclosporine.,bm25,37,1.0,1.0,1.0,0.5405405405405406,1.0,1.0,1.0
+Which drugs are listed for Hypertension?,graph,30,1.0,1.0,1.0,0.6666666666666666,1.0,1.0,1.0
+Which drugs are listed for Hypertension?,bm25,30,1.0,1.0,1.0,0.6666666666666666,1.0,1.0,1.0
+What medicines treat Asthma?,graph,29,1.0,1.0,1.0,0.6896551724137931,1.0,1.0,1.0
+What medicines treat Asthma?,bm25,29,1.0,1.0,1.0,0.6896551724137931,1.0,1.0,1.0
+Show treatments listed for Kawasaki disease.,graph,1,0.2,0.1,0.05,1.0,1.0,1.0,1.0
+Show treatments listed for Kawasaki disease.,bm25,1,0.2,0.1,0.05,1.0,1.0,1.0,1.0
+Which drugs are associated with Gestational diabetes?,graph,1,0.2,0.1,0.05,1.0,1.0,1.0,1.0
+Which drugs are associated with Gestational diabetes?,bm25,1,0.2,0.1,0.05,1.0,1.0,1.0,1.0
+Find treatments for Barrett's esophagus.,graph,2,0.4,0.2,0.1,1.0,1.0,1.0,1.0
+Find treatments for Barrett's esophagus.,bm25,2,0.4,0.2,0.1,1.0,1.0,1.0,1.0
+Which drugs are linked to Nephrolithiasis?,graph,1,0.2,0.1,0.05,1.0,1.0,1.0,1.0
+Which drugs are linked to Nephrolithiasis?,bm25,1,0.2,0.1,0.05,1.0,1.0,1.0,1.0
+What relationships are recorded for Metformin?,graph,37,1.0,1.0,1.0,0.5405405405405406,1.0,1.0,1.0
+What relationships are recorded for Metformin?,bm25,37,1.0,1.0,1.0,0.5405405405405406,1.0,1.0,1.0
+Show all connections for Cyclosporine.,graph,37,1.0,1.0,1.0,0.5405405405405406,1.0,1.0,1.0
+Show all connections for Cyclosporine.,bm25,37,1.0,1.0,1.0,0.5405405405405406,1.0,1.0,1.0
+Is there a recorded relationship between Warfarin and Acetylsalicylic acid?,graph,40,1.0,1.0,1.0,0.5,1.0,0.5958337834156117,0.694355946562825
+Is there a recorded relationship between Warfarin and Acetylsalicylic acid?,bm25,40,1.0,1.0,1.0,0.5,1.0,1.0,1.0
+Are any diseases associated with Acetylsalicylic acid?,graph,27,1.0,0.7,0.35,0.25925925925925924,0.35,1.0,0.9233846433583538
+Are any diseases associated with Acetylsalicylic acid?,bm25,27,1.0,1.0,1.0,0.7407407407407407,1.0,0.33333333333333337,0.3844102377610974
+What conditions are related to Omeprazole?,graph,25,1.0,0.5,0.25,0.2,0.25,1.0,0.8472196115914239
+What conditions are related to Omeprazole?,bm25,25,1.0,1.0,1.0,0.8,1.0,0.33333333333333337,0.4351869256057174
+Which drug relationships mention Kawasaki disease?,graph,1,0.2,0.1,0.05,1.0,1.0,1.0,1.0
+Which drug relationships mention Kawasaki disease?,bm25,1,0.2,0.1,0.05,1.0,1.0,1.0,1.0
+Does the graph include any information on Agalsidase beta?,graph,4,0.8,0.4,0.2,1.0,1.0,1.0,1.0
+Does the graph include any information on Agalsidase beta?,bm25,4,0.8,0.4,0.2,1.0,1.0,1.0,1.0
+What is documented about Methotrexate and its relationships?,graph,40,1.0,1.0,1.0,0.5,1.0,1.0,1.0
+What is documented about Methotrexate and its relationships?,bm25,40,1.0,1.0,1.0,0.5,1.0,1.0,1.0
+Which medicines have interactions with Worfarin?,graph,20,1.0,1.0,1.0,1.0,1.0,1.0,1.0
+Which medicines have interactions with Worfarin?,bm25,20,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+What therapeutic indications are recorded for Metfromin?,graph,3,0.6,0.3,0.15,1.0,1.0,1.0,1.0
+What therapeutic indications are recorded for Metfromin?,bm25,3,0.0,0.0,0.0,0.0,0.0,0.0,0.0

@@ -1,0 +1,197 @@
+query,record_id,relevance,human_reviewed
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter70_DDInter20,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter20_DDInter449,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter686_DDInter20,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter20_DDInter501,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter1913_DDInter20,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter42_DDInter20,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter1139_DDInter20,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter20_DDInter1252,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter20_DDInter1906,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter1259_DDInter20,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter1383_DDInter20,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter20_DDInter1808,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter1135_DDInter20,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter1968_DDInter20,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter771_DDInter20,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter1951_DDInter20,2,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter20_DDInter1464,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter1604_DDInter20,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter20_DDInter698,0,yes
+Does Warfarin interact with Acetylsalicylic acid?,ddinter_DDInter20_DDInter1015,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00320_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00373_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00201_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00586_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00353_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00918_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00216_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00273_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00321_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00924_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00996_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00696_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00241_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00998_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00316_DOID:6364,2,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB01435_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00661_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00571_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00328_DOID:6364,0,yes
+Does Acetaminophen treat Migraine?,pharmdb_DB00434_DOID:6364,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter70_DDInter20,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter771_DDInter20,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter1135_DDInter20,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter1139_DDInter20,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter1604_DDInter20,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter20_DDInter1015,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter20_DDInter1808,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter686_DDInter20,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter20_DDInter449,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,pharmdb_DB00945_DOID:6364,1,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter14_DDInter20,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter14_DDInter1306,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter1968_DDInter20,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter1259_DDInter20,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter1383_DDInter20,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter14_DDInter1633,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter42_DDInter20,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,pharmdb_DB00316_DOID:6364,1,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter20_DDInter1464,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter20_DDInter501,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter20_DDInter698,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,ddinter_DDInter1913_DDInter20,0,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,pharmdb_DB00945_DOID:8398,1,yes
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,pharmdb_DB00316_DOID:8398,1,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter686_DDInter20,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,pharmdb_DB00945_DOID:13189,2,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter20_DDInter698,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter1135_DDInter20,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter1383_DDInter20,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter20_DDInter1808,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter14_DDInter1306,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter1968_DDInter20,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,pharmdb_DB00316_DOID:6364,2,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,pharmdb_DB00945_DOID:8398,2,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter1913_DDInter20,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,pharmdb_DB00945_DOID:7148,2,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter1604_DDInter20,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter20_DDInter1464,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter20_DDInter1015,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter42_DDInter20,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,pharmdb_DB00945_DOID:3393,2,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter14_DDInter20,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter1259_DDInter20,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter20_DDInter501,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,pharmdb_DB00945_DOID:9074,2,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,pharmdb_DB00945_DOID:6364,2,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter70_DDInter20,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter771_DDInter20,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter20_DDInter449,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,pharmdb_DB00945_DOID:13378,2,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter1139_DDInter20,0,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,pharmdb_DB00316_DOID:8398,2,yes
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,ddinter_DDInter14_DDInter1633,0,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB01097_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00635_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00321_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00091_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00945_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00443_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00993_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00091_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00741_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00563_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00635_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00996_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00788_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00814_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00993_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00996_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00688_DOID:9074,0,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00945_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00814_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00959_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00482_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00788_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00321_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00482_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00860_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00959_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00250_DOID:9074,0,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00563_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00741_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00230_DOID:9074,0,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB01234_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00443_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00860_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB01234_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB01097_DOID:7148,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00620_DOID:9074,1,yes
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,pharmdb_DB00620_DOID:7148,1,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00482_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB01097_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00443_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00563_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00991_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00788_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00554_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB01097_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00945_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00321_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00993_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00814_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00814_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00091_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00996_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB01234_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00635_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00620_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00688_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00741_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00635_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00281_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00795_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00586_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00230_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00461_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00620_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB01399_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00945_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00328_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00091_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00959_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00861_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00860_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00993_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00250_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00563_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00788_DOID:7148,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00482_DOID:9074,2,yes
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,pharmdb_DB00959_DOID:9074,2,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",pharmdb_DB00945_DOID:8398,1,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter1266_DDInter20,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter1604_DDInter20,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",pharmdb_DB00788_DOID:8398,1,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter1383_DDInter20,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter1139_DDInter20,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter20_DDInter1015,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",pharmdb_DB00788_DOID:6364,1,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter20_DDInter1808,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter1968_DDInter20,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter1135_DDInter20,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter1266_DDInter69,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",pharmdb_DB00945_DOID:6364,1,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter1266_DDInter965,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter1259_DDInter20,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter686_DDInter20,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter14_DDInter20,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter20_DDInter501,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter1913_DDInter20,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter20_DDInter698,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter14_DDInter1633,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter20_DDInter1464,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",pharmdb_DB00316_DOID:8398,1,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter42_DDInter20,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",ddinter_DDInter14_DDInter1306,0,yes
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",pharmdb_DB00316_DOID:6364,1,yes
