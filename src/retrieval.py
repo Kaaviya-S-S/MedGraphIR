@@ -25,7 +25,7 @@ search) - each tier only runs if the previous one found nothing:
      "worfarin"). Fully explainable: it's a string-similarity ratio, not a
      black box.
 
-Multi-hop expansion follows the graph_builder.py convention: INTERACTS_WITH
+Multi-hop expansion follows the graph_pipeline.py convention: INTERACTS_WITH
 edges are stored in one direction only per DDInter's source data, so
 1-hop retrieval always checks BOTH outgoing and incoming edges of the
 matched node - otherwise half of a drug's interactions would be invisible
@@ -35,16 +35,17 @@ depending on which side of the pair it happened to be stored on.
 import re
 import time
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from difflib import SequenceMatcher, get_close_matches
+from enum import Enum
 
 import networkx as nx
 import pandas as pd
 from pydantic import BaseModel
 
 from src import config
-from src.entity_linking import normalize_text
-from src.graph_builder import load_graph
+from src.data_pipeline import normalize_text
+from src.graph_pipeline import load_graph
 
 # ---------------------------------------------------------------------------
 # Result models
@@ -56,6 +57,21 @@ class EntityMatch(BaseModel):
     entity_type: str
     match_type: str  # EXACT | SUBSTRING | FUZZY
     match_score: float
+
+
+class QueryIntent(str, Enum):
+    SINGLE_ENTITY = "single_entity"
+    DIRECT_RELATIONSHIP = "direct_relationship"
+    AND = "and"
+    OR = "or"
+    AMBIGUOUS = "ambiguous"
+    NONE = "none"
+
+
+class EntityQueryAnalysis(BaseModel):
+    query: str
+    entities: list[EntityMatch]
+    intent: QueryIntent
 
 
 class RetrievedFact(BaseModel):
@@ -71,6 +87,18 @@ class RetrievedFact(BaseModel):
     rank_score: float
 
 
+class MultiEntityRetrievalResult(BaseModel):
+    query: str
+    entities: list[EntityMatch]
+    intent: QueryIntent
+    relationship_filter: str | None = None
+    retrieval_time_ms: float = 0.0
+    result_entity_ids: list[str] = []
+    direct_facts: list[RetrievedFact] = []
+    facts: list[RetrievedFact] = []
+    context_facts: list[RetrievedFact] = []
+
+
 class RetrievalResult(BaseModel):
     query: str
     matched_entity: EntityMatch | None = None
@@ -82,6 +110,7 @@ class RetrievalResult(BaseModel):
     retrieval_time_ms: float = 0.0
     hops_used: int = 0  # actual hop depth applied (manual value, or the auto-adaptive decision)
     hops_adaptive: bool = False  # True if hops_used was decided automatically, not passed by the caller
+    used_lexical_fallback: bool = False  # True if no entity matched and lexical search answered instead
 
 
 # ---------------------------------------------------------------------------
@@ -212,32 +241,25 @@ def search_entity(query: str, index: EntityIndex) -> list[EntityMatch]:
     words = normalized_query.split()
     ngrams = _word_ngrams(words, index.max_alias_words)
 
-    # Tier 2: a known entity name appears as a phrase inside the query.
-    # Uses the RAW (non-stopword-filtered) words: it checks exact equality
-    # against a known alias, so a filler word alone ("with") could never
-    # accidentally equal a full multi-word entity name - no collision risk.
+    # Tier 2: Find a known alias that exactly matches a phrase in the query.
+    # Uses the original query words, including stopwords, because each n-gram
+    # must match a complete alias.
     for ngram in ngrams:
         if ngram in index.alias_lookup:
             score = len(ngram.split()) / len(words)
             return _matches_for_alias(ngram, index, "SUBSTRING", round(score, 3))
 
-    # Tiers 3-4 scan for a QUERY fragment inside/near a known alias, which
-    # IS vulnerable to a filler word spuriously colliding with an unrelated
-    # alias (e.g. "with" inside "...(3350 with electrolytes)") - so these
-    # tiers use stopword-filtered content words instead of the raw query.
+    # Generate n-grams from content words to reduce false matches caused by
+    # common words in the query, such as "with".
     content_ngrams = _word_ngrams(_content_words(words), index.max_alias_words)
 
-    # Tier 3: a query word/phrase is a whole-word fragment inside a longer
-    # known alias (e.g. query "diabetes" -> alias "type 2 diabetes mellitus").
-    # Word-boundary regex avoids matching inside an unrelated longer word.
-    # ALL containing aliases are returned (not just the shortest) because a
-    # short query term can genuinely be ambiguous - e.g. "diabetes" matches
-    # "gestational diabetes", "type 1 diabetes mellitus" AND "type 2
-    # diabetes mellitus", three distinct real entities. Silently picking
-    # one via a string-length heuristic would hide the other two instead
-    # of surfacing the ambiguity, which the brief explicitly calls for
-    # handling (see DOCUMENTATION.md Milestone 10 - "multiple possible entity matches").
+    # Tier 3: Find aliases containing a query phrase as a whole-word sequence.
+    # Return all matching aliases to preserve ambiguity when a phrase refers
+    # to multiple entities (e.g., "diabetes" matching several diabetes types).
+    # Sort aliases by length for display, with shorter aliases first.
     for ngram in content_ngrams:
+        if not any(re.search(r"[a-z]{3,}", word) for word in ngram.split()):
+            continue
         pattern = re.compile(rf"\b{re.escape(ngram)}\b")
         containing = [alias for alias in index.alias_lookup if pattern.search(alias)]
         if containing:
@@ -248,8 +270,9 @@ def search_entity(query: str, index: EntityIndex) -> list[EntityMatch]:
                 matches.extend(_matches_for_alias(alias, index, "PARTIAL", score))
             return matches
 
-    # Tier 4: fuzzy fallback for typos, tried per n-gram (not the whole
-    # query, which would never score well against a short entity name)
+    # Tier 4: Find the closest alias to each content-word n-gram.
+    # Limit n-gram length and apply the configured similarity cutoff.
+    # Keep the alias with the highest similarity across all n-grams.
     best_alias, best_score = None, 0.0
     fuzzy_words = _content_words(words)
     for ngram in _word_ngrams(fuzzy_words, min(index.max_alias_words, config.FUZZY_NGRAM_MAX_WORDS)):
@@ -263,6 +286,111 @@ def search_entity(query: str, index: EntityIndex) -> list[EntityMatch]:
         return _matches_for_alias(best_alias, index, "FUZZY", round(best_score, 3))
 
     return []
+
+
+_SET_QUERY_TARGETS = (
+    "drug", "drugs", "medicine", "medicines", "medication", "medications",
+    "disease", "diseases", "condition", "conditions",
+)
+_AND_QUERY_PATTERN = re.compile(r"\b(?:both|all of|each of|common to|in common)\b")
+_OR_QUERY_PATTERN = re.compile(r"\b(?:or|either|any of)\b")
+_SET_QUERY_PATTERN = re.compile(
+    r"\b(?:what|which|list|find|show|are there|is there|do any|does any|can any)\b"
+)
+_DIRECT_RELATIONSHIP_PATTERN = re.compile(
+    r"\b(?:relationship|relationships|connection|connections|interact|interacts|"
+    r"interaction|interactions|treat|treats|treated|indication|indications)\b"
+)
+
+
+def find_query_entities(query: str, index: EntityIndex) -> list[EntityMatch]:
+    """Find every distinct, explicitly named entity, preferring longer aliases.
+
+    This intentionally uses known aliases only. It does not fuzzy-match each
+    query fragment, which could turn ordinary words into spurious entities.
+    """
+    normalized_query = normalize_query(query)
+    if not normalized_query:
+        return []
+
+    candidates = []
+    for alias, entity_ids in index.alias_lookup.items():
+        pattern = re.compile(rf"(?<!\w){re.escape(alias)}(?!\w)")
+        for match in pattern.finditer(normalized_query):
+            for entity_id in entity_ids:
+                candidates.append((match.start(), match.end(), alias, entity_id))
+
+    # Resolve overlaps by considering the earliest unmatched text position
+    # and choosing the longest alias beginning there.
+    candidates.sort(key=lambda item: (item[0], -(item[1] - item[0]), item[2]))
+    selected: list[EntityMatch] = []
+    seen_entities: set[str] = set()
+    cursor = 0
+    while candidates:
+        eligible = [candidate for candidate in candidates if candidate[0] >= cursor]
+        if not eligible:
+            break
+        start = min(candidate[0] for candidate in eligible)
+        at_start = [candidate for candidate in eligible if candidate[0] == start]
+        end = max(candidate[1] for candidate in at_start)
+        longest = [candidate for candidate in at_start if candidate[1] == end]
+        for _, _, alias, entity_id in longest:
+            if entity_id in seen_entities:
+                continue
+            info = index.node_info[entity_id]
+            selected.append(
+                EntityMatch(
+                    entity_id=entity_id,
+                    canonical_name=info["canonical_name"],
+                    entity_type=info["entity_type"],
+                    match_type="EXACT" if normalized_query == alias else "SUBSTRING",
+                    match_score=1.0 if normalized_query == alias else round(len(alias) / len(normalized_query), 3),
+                )
+            )
+            seen_entities.add(entity_id)
+        cursor = end
+
+    return selected
+
+
+def detect_query_intent(query: str, entity_count: int) -> QueryIntent:
+    """Classify supported multi-entity wording with conservative rules."""
+    if entity_count == 0:
+        return QueryIntent.NONE
+    if entity_count == 1:
+        return QueryIntent.SINGLE_ENTITY
+
+    normalized_query = normalize_query(query)
+    if _OR_QUERY_PATTERN.search(normalized_query):
+        return QueryIntent.OR
+
+    has_and = re.search(r"\band\b", normalized_query) is not None
+    asks_for_set = (
+        _SET_QUERY_PATTERN.search(normalized_query) is not None
+        and any(re.search(rf"\b{target}\b", normalized_query) for target in _SET_QUERY_TARGETS)
+    )
+    if asks_for_set and (
+        _AND_QUERY_PATTERN.search(normalized_query)
+        or (has_and and _DIRECT_RELATIONSHIP_PATTERN.search(normalized_query))
+    ):
+        return QueryIntent.AND
+
+    direct = _DIRECT_RELATIONSHIP_PATTERN.search(normalized_query)
+    between = re.search(r"\bbetween\b", normalized_query) is not None
+    if direct and (between or not asks_for_set):
+        return QueryIntent.DIRECT_RELATIONSHIP
+
+    return QueryIntent.AMBIGUOUS
+
+
+def analyze_entity_query(query: str, index: EntityIndex) -> EntityQueryAnalysis:
+    """Find named entities and classify the supported query intent."""
+    entities = find_query_entities(query, index)
+    return EntityQueryAnalysis(
+        query=query,
+        entities=entities,
+        intent=detect_query_intent(query, len(entities)),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -402,6 +530,191 @@ def _consolidate(facts: list[RetrievedFact]) -> list[RetrievedFact]:
     return list(best.values())
 
 
+def _fact_neighbor_id(fact: RetrievedFact, entity_id: str) -> str:
+    return fact.target_entity_id if fact.source_entity_id == entity_id else fact.source_entity_id
+
+
+def _requested_result_entity_type(query: str) -> str | None:
+    normalized_query = normalize_query(query)
+    asks_for_drugs = re.search(
+        r"\b(?:drug|drugs|medicine|medicines|medication|medications)\b",
+        normalized_query,
+    )
+    asks_for_diseases = re.search(
+        r"\b(?:disease|diseases|condition|conditions)\b",
+        normalized_query,
+    )
+    if bool(asks_for_drugs) == bool(asks_for_diseases):
+        return None
+    return config.ENTITY_DRUG if asks_for_drugs else config.ENTITY_DISEASE
+
+
+def _fact_sort_key(fact: RetrievedFact) -> tuple:
+    return (
+        fact.hop,
+        -fact.rank_score,
+        fact.source_name.casefold(),
+        fact.target_name.casefold(),
+        fact.relationship,
+        fact.record_id,
+    )
+
+
+def retrieve_multi_entity_relationships(
+    query: str,
+    G: nx.DiGraph,
+    index: EntityIndex,
+    top_k: int = config.TOP_K_RESULTS,
+    include_context: bool = False,
+    context_hops: int = 1,
+) -> MultiEntityRetrievalResult:
+    """Retrieve direct, shared (AND), or combined (OR) facts for named entities.
+
+    Primary results always follow the classified query intent. Optional
+    neighborhood facts are returned separately as context and are never
+    presented as direct evidence between the named entities.
+    """
+    start = time.perf_counter()
+    if top_k <= 0:
+        raise ValueError("top_k must be greater than zero")
+    if context_hops not in (1, 2):
+        raise ValueError("context_hops must be 1 or 2")
+
+    analysis = analyze_entity_query(query, index)
+    entities = analysis.entities
+    entity_ids = {entity.entity_id for entity in entities}
+    relationship_filter = infer_relationship_filter(query)
+    primary_facts: list[RetrievedFact] = []
+    result_entity_ids: list[str] = []
+
+    if analysis.intent == QueryIntent.DIRECT_RELATIONSHIP:
+        for position, first in enumerate(entities):
+            for second in entities[position + 1 :]:
+                for source_id, target_id in (
+                    (first.entity_id, second.entity_id),
+                    (second.entity_id, first.entity_id),
+                ):
+                    if not G.has_edge(source_id, target_id):
+                        continue
+                    data = G[source_id][target_id]
+                    if relationship_filter and data["relationship"] != relationship_filter:
+                        continue
+                    primary_facts.append(_edge_to_fact(G, source_id, target_id, data, hop=1))
+        primary_facts = _consolidate(primary_facts)
+        primary_facts.sort(key=_fact_sort_key)
+        primary_facts = primary_facts[:top_k]
+        result_entity_ids = sorted(
+            {
+                endpoint
+                for fact in primary_facts
+                for endpoint in (fact.source_entity_id, fact.target_entity_id)
+                if endpoint in entity_ids
+            }
+        )
+
+    elif analysis.intent in (QueryIntent.AND, QueryIntent.OR):
+        facts_by_entity = {
+            entity.entity_id: retrieve_one_hop(G, entity.entity_id, relationship_filter)
+            for entity in entities
+        }
+        requested_type = _requested_result_entity_type(query)
+        neighbors_by_entity = {}
+        for entity_id, facts in facts_by_entity.items():
+            neighbors = set()
+            for fact in facts:
+                neighbor_id = _fact_neighbor_id(fact, entity_id)
+                if neighbor_id in entity_ids:
+                    continue
+                if requested_type and index.node_info[neighbor_id]["entity_type"] != requested_type:
+                    continue
+                neighbors.add(neighbor_id)
+            neighbors_by_entity[entity_id] = neighbors
+
+        if analysis.intent == QueryIntent.AND:
+            result_ids = set.intersection(*neighbors_by_entity.values()) if neighbors_by_entity else set()
+        else:
+            result_ids = set.union(*neighbors_by_entity.values()) if neighbors_by_entity else set()
+
+        supporting_facts = [
+            fact
+            for entity_id, facts in facts_by_entity.items()
+            for fact in facts
+            if _fact_neighbor_id(fact, entity_id) in result_ids
+        ]
+        supporting_facts = _consolidate(supporting_facts)
+        best_score_by_result = {
+            result_id: max(
+                fact.rank_score
+                for fact in supporting_facts
+                if result_id in (fact.source_entity_id, fact.target_entity_id)
+            )
+            for result_id in result_ids
+        }
+        result_entity_ids = sorted(
+            result_ids,
+            key=lambda result_id: (
+                -best_score_by_result[result_id],
+                index.node_info[result_id]["canonical_name"].casefold(),
+                result_id,
+            ),
+        )[:top_k]
+        selected_ids = set(result_entity_ids)
+        primary_facts = [
+            fact
+            for fact in supporting_facts
+            if any(
+                endpoint in selected_ids
+                for endpoint in (fact.source_entity_id, fact.target_entity_id)
+            )
+        ]
+        primary_facts.sort(key=_fact_sort_key)
+
+    direct_facts = (
+        primary_facts if analysis.intent == QueryIntent.DIRECT_RELATIONSHIP else []
+    )
+    context_facts: list[RetrievedFact] = []
+    if include_context and analysis.intent in (
+        QueryIntent.DIRECT_RELATIONSHIP,
+        QueryIntent.AND,
+        QueryIntent.OR,
+    ):
+        for entity in entities:
+            one_hop = retrieve_one_hop(G, entity.entity_id, relationship_filter)
+            context_facts.extend(one_hop)
+            if context_hops == 2 and one_hop:
+                context_facts.extend(
+                    retrieve_two_hop(G, entity.entity_id, one_hop, relationship_filter)
+                )
+
+        primary_keys = {
+            (fact.source_entity_id, fact.relationship, fact.target_entity_id)
+            for fact in primary_facts
+        }
+        context_facts = [
+            fact
+            for fact in _consolidate(context_facts)
+            if (fact.source_entity_id, fact.relationship, fact.target_entity_id) not in primary_keys
+            and not (
+                fact.source_entity_id in entity_ids
+                and fact.target_entity_id in entity_ids
+            )
+        ]
+        context_facts.sort(key=_fact_sort_key)
+        context_facts = context_facts[:top_k]
+
+    return MultiEntityRetrievalResult(
+        query=query,
+        entities=entities,
+        intent=analysis.intent,
+        relationship_filter=relationship_filter,
+        retrieval_time_ms=(time.perf_counter() - start) * 1000,
+        result_entity_ids=result_entity_ids,
+        direct_facts=direct_facts,
+        facts=primary_facts,
+        context_facts=context_facts,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
@@ -416,10 +729,7 @@ def retrieve_relationships(
     adaptive_hops: bool = False,
     adaptive_hop_top_k: int | None = None,
 ) -> RetrievalResult:
-    """The full Milestone 5 pipeline for one query. Never raises on
-    "no match" / "no results" - callers (evaluation, UI) check
-    `matched_entity is None` / `facts == []` and handle it explicitly
-    (see DOCUMENTATION.md Milestone 10 - error handling).
+    """The pipeline for one query. 
 
     `adaptive_hops=True` ignores `max_hops` and instead picks the hop
     depth per query based on the matched entity's own 1-hop connection
@@ -430,16 +740,14 @@ def retrieve_relationships(
     saves the traversal cost). Below that, expansion to 2 hops runs as
     usual to add context for an otherwise sparse entity.
 
-    The "enough" threshold is `top_k` by default, but callers that request
-    a wider candidate pool than they'll actually display (hybrid_retrieval.
-    retrieve_hybrid uses top_k=candidate_pool_k=50 to have more to merge
-    from, while the user-facing result size is 20) should pass their real
+    The "enough" threshold is `top_k` by default, but a caller that requests
+    a wider candidate pool than it will actually display should pass its real
     display size as `adaptive_hop_top_k` - otherwise the decision would be
-    judged against the oversized pool and wrongly call entities "low
-    degree" that aren't from the caller's actual point of view.
+    judged against the oversized pool and wrongly call entities "low degree"
+    that aren't from the caller's actual point of view.
 
-    Off by default - existing callers (evaluate.py, hybrid_retrieval.py's
-    internal call) are unaffected unless they opt in.
+    Off by default - existing callers (evaluate.py) are unaffected unless
+    they opt in.
     """
     start = time.perf_counter()
     print(f'[RETRIEVAL] Query: "{query}"')
@@ -449,13 +757,10 @@ def retrieve_relationships(
         print("[RETRIEVAL] No matching entity found")
         return RetrievalResult(query=query, retrieval_time_ms=(time.perf_counter() - start) * 1000)
 
-    # Best match wins; alternatives are kept as candidates so the caller can
-    # surface "did you mean...?" instead of silently guessing. For the
-    # high-confidence tiers (EXACT/SUBSTRING) only exact score ties count
-    # as genuinely ambiguous. For the lower-confidence tiers (PARTIAL,
-    # FUZZY) every other match found is kept as a candidate, since those
-    # tiers surface real ambiguity by design (e.g. "diabetes" matching
-    # three distinct diabetes-related diseases).
+    # Rank matches by match score, then by entity mention count.
+    # PARTIAL and FUZZY matches retain all alternative entities as candidates.
+    # EXACT and SUBSTRING matches retain only alternatives tied with the
+    # best match score, avoiding unnecessary ambiguity from weaker matches.
     matches.sort(key=lambda m: (-m.match_score, -index.node_info[m.entity_id]["mention_count"]))
     best = matches[0]
     if best.match_type in ("PARTIAL", "FUZZY"):
@@ -471,13 +776,10 @@ def retrieve_relationships(
     one_hop = retrieve_one_hop(G, best.entity_id, relationship_filter)
     relationship_filter_relaxed = False
 
-    # The keyword-inferred filter is a best-effort guess, not a guarantee
-    # the entity has that relationship type at all (e.g. "What diseases
-    # does Doripenem treat?" infers TREATS, but Doripenem only has
-    # INTERACTS_WITH edges in the graph). Rather than dead-ending with "no
-    # results" when the entity genuinely has other real data, relax the
-    # filter and show everything, clearly flagged so the UI can explain
-    # what happened instead of silently switching topics.
+    # If the filter produces no results, retry without it so that existing
+    # relationships of other types are not omitted. Record the relaxation
+    # so the caller can explain why the results may not match the query's
+    # requested relationship type.
     if not one_hop and relationship_filter:
         print(f"[RETRIEVAL] No {relationship_filter} relationships found for this entity - "
               f"relaxing filter and showing all relationship types")
@@ -485,10 +787,11 @@ def retrieve_relationships(
         relationship_filter = None
         one_hop = retrieve_one_hop(G, best.entity_id, relationship_filter)
 
+    # In adaptive mode, compare the full 1-hop result count with the threshold.
+    # Use adaptive_hop_top_k when supplied; otherwise, use top_k.
+    # Retrieve 2-hop relationships only when direct connections fall below
+    # the threshold. Otherwise, respect the configured max_hops.
     if adaptive_hops:
-        # one_hop is already the FULL (untruncated) 1-hop fact list, so its
-        # length is exactly the entity's relevant connection count - no
-        # separate degree lookup needed.
         threshold = adaptive_hop_top_k if adaptive_hop_top_k is not None else top_k
         effective_max_hops = 1 if len(one_hop) >= threshold else 2
         print(f"[RETRIEVAL] Adaptive hops: {best.canonical_name} has {len(one_hop)} direct connections "

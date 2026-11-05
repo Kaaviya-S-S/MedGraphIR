@@ -1,0 +1,15 @@
+query,method,n_judged_relevant,precision_at_5,precision_at_10,precision_at_20,recall_at_20,map_at_20,ndcg_at_10
+Does Warfarin interact with Acetylsalicylic acid?,multi_entity,1,0.2,0.1,0.05,1.0,1.0,1.0
+Does Warfarin interact with Acetylsalicylic acid?,bm25,1,0.2,0.1,0.05,1.0,1.0,1.0
+Does Acetaminophen treat Migraine?,multi_entity,1,0.2,0.1,0.05,1.0,1.0,1.0
+Does Acetaminophen treat Migraine?,bm25,1,0.2,0.1,0.05,1.0,1.0,1.0
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,multi_entity,4,0.8,0.4,0.2,1.0,1.0,1.0
+Which diseases are treated by both Acetaminophen and Acetylsalicylic acid?,bm25,4,0.0,0.0,0.0,0.0,0.0,0.0
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,multi_entity,9,1.0,0.9,0.45,1.0,1.0,1.0
+Which diseases does Acetaminophen or Acetylsalicylic acid treat?,bm25,9,0.0,0.0,0.0,0.0,0.0,0.0
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,multi_entity,34,1.0,1.0,1.0,0.5882352941176471,1.0,1.0
+Which drugs treat both rheumatoid arthritis and systemic lupus erythematosus?,bm25,34,0.8,0.9,0.85,0.5,0.7746890405346287,0.905211635630449
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,multi_entity,40,1.0,1.0,1.0,0.5,1.0,1.0
+Which drugs treat rheumatoid arthritis or systemic lupus erythematosus?,bm25,40,1.0,1.0,1.0,0.5,1.0,1.0
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",multi_entity,6,1.0,0.6,0.3,1.0,1.0,1.0
+"Which diseases are treated by Acetaminophen, Acetylsalicylic acid, and Naproxen?",bm25,6,0.0,0.0,0.0,0.0,0.0,0.0
