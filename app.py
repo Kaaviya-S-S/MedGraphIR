@@ -33,8 +33,6 @@ from src.retrieval import (
 
 st.set_page_config(page_title="MedGraphIR", page_icon="\U0001F9EC", layout="wide")
 
-_BACKGROUND_IMAGE_PATH = config.PROJECT_ROOT / "assets" / "bg1.jpg"
-
 @st.cache_resource(show_spinner=False)
 def _load_background_css(image_path) -> str:
     encoded = base64.b64encode(image_path.read_bytes()).decode()
@@ -505,14 +503,18 @@ def main():
             for entity in multi_result.entities
         ))
         st.caption(f"Query intent: **{multi_result.intent.value.upper()}**")
-    else:
+    elif match:
         st.subheader("Matched Entity")
+    else:
+        st.subheader("Lexical Search Results")
     if multi_result is None and match:
         st.markdown(f"**{match.canonical_name}**  •  {match.entity_type}  •  "
                     f"matched via {match.match_type} (score {match.match_score})")
     elif multi_result is None:
-        st.caption(f"{method} does not resolve a specific entity - showing the top "
-                    "lexically similar records for your query text.")
+        st.caption(
+            "Showing the top BM25 matches for your query text. BM25 ranks records "
+            "lexically and does not resolve a specific entity."
+        )
 
     if multi_result is None and not result.facts:
         filter_desc = f" {result.relationship_filter}" if result.relationship_filter else ""

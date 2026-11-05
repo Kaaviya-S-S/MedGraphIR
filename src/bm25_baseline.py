@@ -4,7 +4,7 @@ The lexical (non-graph) baseline: each relation record is treated as an
 independent bag-of-words document and ranked by BM25, which weights rare
 terms higher than common ones and normalizes for document length. It has no
 notion of connected entities or relationship type - which is exactly the
-capability graph retrieval is expected to win on.
+capability graph retrieval.
 """
 
 import json
