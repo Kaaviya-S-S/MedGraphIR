@@ -97,7 +97,6 @@ No multi-entity scores are reported until all pooled candidates have been manual
 - Disease coverage is limited to the 97 diseases in PharmacotherapyDB.
 - Entity linking is name-based, not a full ontology linker (e.g. brand names may not resolve).
 - Multi-entity intent detection uses simple wording rules; unclear queries are reported as ambiguous rather than interpreted freely.
-- AI summaries are generated locally through Ollama and summarize retrieved facts; they are not medical advice.
 
 ## Project structure
 
